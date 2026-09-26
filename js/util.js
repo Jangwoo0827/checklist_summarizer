@@ -32,16 +32,33 @@
   }
 
   var toastTimer = null;
-  function toast(message) {
+  // opts.action + opts.onAction add a button (e.g. 되돌리기); such toasts stay up longer.
+  function toast(message, opts) {
     var el = root.document && root.document.getElementById("toast");
     if (!el) return;
-    el.textContent = message;
+    opts = opts || {};
+    el.innerHTML = "";
+    var text = root.document.createElement("span");
+    text.textContent = message;
+    el.appendChild(text);
+    if (opts.action) {
+      var btn = root.document.createElement("button");
+      btn.type = "button";
+      btn.className = "toast-action";
+      btn.textContent = opts.action;
+      btn.addEventListener("click", function () {
+        el.hidden = true;
+        clearTimeout(toastTimer);
+        opts.onAction();
+      });
+      el.appendChild(btn);
+    }
     el.hidden = false;
     el.classList.remove("toast-in");
     void el.offsetWidth; // restart the entrance animation
     el.classList.add("toast-in");
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { el.hidden = true; }, 2600);
+    toastTimer = setTimeout(function () { el.hidden = true; }, opts.action ? 5000 : 2600);
   }
 
   CN.util = {

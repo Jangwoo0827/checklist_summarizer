@@ -88,6 +88,14 @@
       store.commit(null);
     },
 
+    // Undo a removeList. commit() stamps a fresh updatedAt, which outranks the
+    // tombstone even if another device already received it.
+    restoreList: function (list) {
+      delete store.deleted[list.id];
+      if (!store.getList(list.id)) store.lists.push(list);
+      store.commit(list);
+    },
+
     snapshot: function () {
       return { lists: store.lists, deleted: store.deleted };
     },

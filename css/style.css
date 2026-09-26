@@ -196,6 +196,24 @@ button {
 .card-frac { font-size: 12px; color: var(--ink-muted); }
 .card-pct { font-size: 11px; color: var(--ink-muted); }
 .card-done { font-size: 11px; font-weight: 700; color: var(--accent); letter-spacing: 0.04em; }
+.card.is-done { box-shadow: none; background: transparent; }
+.card.is-done .card-title { color: var(--ink-muted); }
+
+.done-section { margin-top: 8px; }
+.done-toggle {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 10px 2px; margin-bottom: 10px;
+  border: none; border-top: 1px dashed var(--rule); background: none;
+  color: var(--ink-muted); font-size: 13px; font-weight: 700; text-align: left;
+}
+.done-toggle:hover { color: var(--ink); }
+.done-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.done-count {
+  font-size: 11px; padding: 1px 7px; border-radius: 999px;
+  background: var(--surface-2); color: var(--ink-muted);
+}
+.done-toggle svg { width: 14px; height: 14px; margin-left: auto; transition: transform 0.15s ease; }
+.done-toggle[aria-expanded="false"] svg { transform: rotate(-90deg); }
 
 /* ---------- input view ---------- */
 .field-label {
@@ -238,12 +256,13 @@ textarea { line-height: 1.65; resize: vertical; min-height: 220px; margin-bottom
 }
 .back-link:hover { color: var(--accent); }
 .detail-title-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
-.detail-title {
+/* Qualified with the element so it beats the generic input[type="text"] field style. */
+input.detail-title {
   font-size: 21px; font-weight: 800; letter-spacing: -0.01em;
-  background: transparent; border: none; color: var(--ink); font-family: inherit;
+  background: transparent; border: none; border-radius: 0; color: var(--ink); font-family: inherit;
   flex: 1; padding: 2px 0; border-bottom: 1px solid transparent;
 }
-.detail-title:focus { outline: none; border-bottom-color: var(--accent); }
+input.detail-title:focus { outline: none; box-shadow: none; border-bottom-color: var(--accent); }
 .progress-row {
   position: sticky; top: 0; z-index: 2;
   display: flex; align-items: center; gap: 12px;
@@ -260,6 +279,11 @@ textarea { line-height: 1.65; resize: vertical; min-height: 220px; margin-bottom
   font-size: 12px; font-weight: 700; letter-spacing: 0.04em;
   padding: 5px 10px; border-radius: 999px; margin: 8px 0 4px;
 }
+.stamp[data-animate] { animation: stamp-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.25s both; }
+@keyframes stamp-in {
+  from { opacity: 0; transform: scale(0.6); }
+  to { opacity: 1; transform: scale(1); }
+}
 
 ul.tree, ul.tree ul { list-style: none; margin: 0; padding: 0; }
 ul.tree { border-top: 1px solid var(--rule); }
@@ -273,42 +297,60 @@ ul.tree ul li:last-child { border-bottom: none; }
 
 .chk {
   appearance: none; -webkit-appearance: none;
-  width: 19px; height: 19px; flex-shrink: 0; margin-top: 1px;
+  width: 19px; height: 19px; flex-shrink: 0; margin-top: 1px; padding: 0;
   border: 1.5px solid var(--ink-muted); border-radius: 5px;
   background: var(--surface);
   position: relative;
-  transition: border-color 0.15s ease, background 0.15s ease, transform 0.12s ease;
+  transition: transform 0.12s ease;
 }
 .chk:hover { border-color: var(--accent); transform: scale(1.12); }
 .chk:active { transform: scale(0.9); }
 .chk[aria-checked="true"] { background: var(--accent); border-color: var(--accent); }
-.chk[aria-checked="true"]::after {
-  content: ""; position: absolute; left: 3px; top: 5px;
-  width: 11px; height: 6px;
-  border-left: 2px solid var(--accent-contrast);
-  border-bottom: 2px solid var(--accent-contrast);
-  transform: rotate(-45deg);
-  animation: chk-pop 0.24s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
 .chk[aria-checked="mixed"] { border-color: var(--accent); }
 .chk[aria-checked="mixed"]::after {
-  content: ""; position: absolute; left: 4px; top: 8px;
-  width: 9px; height: 2px; background: var(--accent); border-radius: 1px;
-}
-@keyframes chk-pop {
-  0% { transform: rotate(-45deg) scale(0); opacity: 0; }
-  55% { transform: rotate(-45deg) scale(1.25); opacity: 1; }
-  100% { transform: rotate(-45deg) scale(1); }
+  content: ""; position: absolute; left: 4px; top: 7.5px;
+  width: 8px; height: 2px; background: var(--accent); border-radius: 1px;
 }
 .chk:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* The check is an SVG stroke so it can be drawn like a pen line (pathLength="1"). */
+.chk-mark {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  fill: none; stroke: var(--accent-contrast); stroke-width: 2.2;
+  stroke-linecap: round; stroke-linejoin: round;
+  stroke-dasharray: 1; stroke-dashoffset: 1;
+}
+.chk[aria-checked="true"] .chk-mark { stroke-dashoffset: 0; }
+
+/* Only rows that just became checked animate; everything else renders in its final state. */
+.item-row[data-animate] .chk { animation: chk-fill 0.18s ease-out var(--delay, 0ms) both; }
+.item-row[data-animate] .chk-mark { animation: chk-draw 0.26s ease-out calc(var(--delay, 0ms) + 0.1s) both; }
+.item-row[data-animate] .item-label { animation: strike-draw 0.32s ease-out calc(var(--delay, 0ms) + 0.22s) both; }
+@keyframes chk-fill {
+  from { background: var(--surface); border-color: var(--ink-muted); }
+  to { background: var(--accent); border-color: var(--accent); }
+}
+@keyframes chk-draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes strike-draw {
+  from { background-size: 0% 1.5px; color: var(--ink); }
+  to { background-size: 100% 1.5px; color: var(--ink-muted); }
+}
 
 .item-text {
   font-size: 14.5px; line-height: 1.55; padding-top: 0px; cursor: pointer;
 }
 .item-row[data-leaf="0"] .item-text { font-weight: 700; }
-.item-row[data-checked="true"] .item-text {
-  color: var(--ink-muted); text-decoration: line-through; text-decoration-color: var(--rule);
+/* Strikethrough is a background line on an inline span, so it can grow left to right across wrapped lines. */
+.item-label {
+  background-image: linear-gradient(var(--ink-muted), var(--ink-muted));
+  background-repeat: no-repeat;
+  background-position: 0 56%;
+  background-size: 0% 1.5px;
 }
+.item-row[data-checked="true"] .item-label { color: var(--ink-muted); background-size: 100% 1.5px; }
 
 .caret-btn {
   margin-left: auto; flex-shrink: 0;
@@ -348,7 +390,16 @@ ul.tree ul li:last-child { border-bottom: none; }
   font-size: 13px; font-weight: 600;
   box-shadow: var(--shadow);
 }
+.toast { display: flex; align-items: center; gap: 14px; }
+.toast-action {
+  flex-shrink: 0; padding: 4px 2px; border: none; background: none;
+  color: var(--accent-soft); font-size: 13px; font-weight: 800;
+}
+.toast-action:hover { text-decoration: underline; }
+.toast-action:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
 .toast.toast-in { animation: toast-in 0.18s ease-out; }
+
+.confetti { position: fixed; inset: 0; pointer-events: none; z-index: 60; }
 @keyframes toast-in {
   from { opacity: 0; transform: translate(-50%, 6px); }
   to { opacity: 1; transform: translate(-50%, 0); }
@@ -362,10 +413,11 @@ ul.tree ul li:last-child { border-bottom: none; }
 
 @media (prefers-reduced-motion: reduce) {
   .chip-dot[data-status="syncing"] { animation: none; }
-  .chk { transition: border-color 0.15s ease, background 0.15s ease; }
+  .chk { transition: none; }
   .chk:hover, .chk:active { transform: none; }
-  .chk[aria-checked="true"]::after, .toast.toast-in { animation: none; }
-  .caret-btn svg { transition: none; }
+  .item-row[data-animate] .chk, .item-row[data-animate] .chk-mark, .item-row[data-animate] .item-label,
+  .stamp[data-animate], .toast.toast-in { animation: none; }
+  .caret-btn svg, .done-toggle svg { transition: none; }
 }
 
 [hidden] { display: none !important; }

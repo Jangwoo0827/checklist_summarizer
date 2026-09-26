@@ -33,10 +33,15 @@
   <section id="view-list">
     <button class="btn btn-primary btn-block" id="btn-new" style="margin-bottom:20px;">+ 새 체크리스트 만들기</button>
     <div class="card-list" id="card-list"></div>
-    <p class="empty" id="empty-state" hidden>
-      아직 만든 체크리스트가 없어요.<br>
-      숙제나 할 일 목록을 붙여넣으면 바로 체크리스트로 바꿔드려요.
-    </p>
+    <p class="empty" id="empty-state" hidden></p>
+    <div class="done-section" id="done-section" hidden>
+      <button type="button" class="done-toggle" id="done-toggle" aria-expanded="false" aria-controls="done-list">
+        <span>완료한 체크리스트</span>
+        <span class="done-count num" id="done-count"></span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="card-list" id="done-list" hidden></div>
+    </div>
   </section>
 
   <!-- INPUT VIEW -->
@@ -49,7 +54,7 @@
     <div class="input-block">
       <label class="field-label" for="text-input">할 일 목록</label>
       <textarea id="text-input" spellcheck="false"></textarea>
-      <p class="hint">"1. 문법" "1) 워크북" 같은 번호를 쓰면 구조를 알아서 잡아줘요. 줄 앞에서 <code>Tab</code>이나 스페이스 4칸을 누르면 한 단계 더 들여써져요 (Shift+Tab으로 내어쓰기).</p>
+      <p class="hint">"1. 문법" "1) 워크북" 같은 번호를 쓰면 구조를 알아서 잡아줘요. Enter를 치면 다음 번호가 자동으로 붙고, <code>Tab</code>으로 한 단계 들여쓰기, Shift+Tab으로 내어쓰기예요. 빈 번호에서 Enter를 한 번 더 치면 번호가 끝나요.</p>
     </div>
 
     <button class="btn btn-primary btn-block" id="btn-build">체크리스트 만들기</button>
@@ -120,6 +125,7 @@
 <script src="js/store.js"></script>
 <script src="js/sync.js"></script>
 <script src="js/theme.js"></script>
+<script src="js/confetti.js"></script>
 <script src="js/view-list.js"></script>
 <script src="js/view-detail.js"></script>
 <script src="js/view-input.js"></script>
