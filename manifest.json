@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "체크리스트 노트",
+  "short_name": "체크리스트",
+  "version": "1.0.0",
+  "description": "숙제·할 일 텍스트를 붙여넣으면 계층 체크리스트로 만들어줘요. 아이디로 웹사이트와 동기화돼요.",
+  "action": {
+    "default_title": "체크리스트 노트",
+    "default_popup": "index.html?popup=1",
+    "default_icon": { "16": "icons/icon16.png", "32": "icons/icon32.png", "48": "icons/icon48.png" }
+  },
+  "icons": { "16": "icons/icon16.png", "32": "icons/icon32.png", "48": "icons/icon48.png", "128": "icons/icon128.png" },
+  "commands": {
+    "_execute_action": { "suggested_key": { "default": "Alt+Shift+C" }, "description": "체크리스트 노트 열기" }
+  }
+}

@@ -53,6 +53,15 @@
   CN.sync.onRemoteChange(refresh);
   doc.getElementById("btn-new").addEventListener("click", CN.input.openNew);
   doc.getElementById("btn-back").addEventListener("click", showList);
+  // In the extension popup, offer to open the same page full-size in a tab.
+  var expand = doc.getElementById("btn-expand");
+  if (doc.documentElement.classList.contains("is-popup") && root.chrome && root.chrome.tabs) {
+    expand.hidden = false;
+    expand.addEventListener("click", function () {
+      root.chrome.tabs.create({ url: root.chrome.runtime.getURL("index.html") });
+      root.close();
+    });
+  }
   showList();
   CN.sync.init();
 })(window);

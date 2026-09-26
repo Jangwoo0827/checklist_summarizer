@@ -4,12 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>체크리스트 노트</title>
-<script>
-  try {
-    var savedTheme = localStorage.getItem("checklist_note_theme_v1");
-    if (savedTheme === "light" || savedTheme === "dark") document.documentElement.setAttribute("data-theme", savedTheme);
-  } catch (e) {}
-</script>
+<script src="js/boot.js"></script>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -25,6 +20,9 @@
         <span class="chip-label" id="account-label">동기화</span>
       </button>
       <button type="button" class="icon-btn" id="btn-theme"></button>
+      <button type="button" class="icon-btn" id="btn-expand" title="큰 화면으로 열기" aria-label="큰 화면으로 열기" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-8 8M10 20H4v-6"/></svg>
+      </button>
     </div>
   </header>
   <div class="rail"></div>

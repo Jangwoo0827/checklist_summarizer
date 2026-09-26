@@ -421,3 +421,15 @@ ul.tree ul li:last-child { border-bottom: none; }
 }
 
 [hidden] { display: none !important; }
+
+/* ---------- extension popup ---------- */
+html.is-popup body { width: 400px; min-height: 0; }
+html.is-popup .page { padding: 16px 14px 20px; }
+html.is-popup .topbar { margin-bottom: 14px; }
+html.is-popup .eyebrow { display: none; }
+html.is-popup h1.title { font-size: 19px; }
+html.is-popup .rail { margin-bottom: 14px; }
+html.is-popup .chip { max-width: 130px; }
+html.is-popup #btn-new { margin-bottom: 14px !important; }
+html.is-popup textarea { min-height: 220px; }
+html.is-popup .footer-note { margin-top: 16px; }
