@@ -39,20 +39,6 @@
     }
   }
 
-  // Ctrl+V a screenshot anywhere to start a checklist from it.
-  function handlePaste(e) {
-    if (CN.account.isOpen()) return;
-    var items = (e.clipboardData && e.clipboardData.items) || [];
-    var file = null;
-    for (var i = 0; i < items.length; i++) {
-      if (items[i].kind === "file" && /^image\//.test(items[i].type)) { file = items[i].getAsFile(); break; }
-    }
-    if (!file) return;
-    e.preventDefault();
-    if (current !== "input") CN.input.openNew();
-    CN.input.acceptImageFile(file, true);
-  }
-
   CN.app = {
     activeId: function () { return activeId; },
     showList: showList,
@@ -67,7 +53,6 @@
   CN.sync.onRemoteChange(refresh);
   doc.getElementById("btn-new").addEventListener("click", CN.input.openNew);
   doc.getElementById("btn-back").addEventListener("click", showList);
-  doc.addEventListener("paste", handlePaste);
   showList();
   CN.sync.init();
 })(window);

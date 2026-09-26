@@ -99,5 +99,5 @@
     refresh();
   }
 
-  CN.account = { init: init, isOpen: function () { return dialog.open; } };
+  CN.account = { init: init };
 })(window);
