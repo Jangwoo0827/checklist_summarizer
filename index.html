@@ -1,312 +1,38 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>체크리스트 노트</title>
-<style>
-  :root {
-    --bg: #eeede6;
-    --surface: #fbfaf6;
-    --surface-2: #f4f2ea;
-    --ink: #23241f;
-    --ink-muted: #6b6a61;
-    --rule: #d8d6c9;
-    --accent: #2f5d50;
-    --accent-contrast: #ffffff;
-    --accent-soft: #dce8e1;
-    --warn: #b4442e;
-    --warn-soft: #f3ddd6;
-    --shadow: 0 1px 0 rgba(35,36,31,0.04), 0 8px 24px -16px rgba(35,36,31,0.25);
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #1b1e1a;
-      --surface: #23261f;
-      --surface-2: #292c24;
-      --ink: #ede9df;
-      --ink-muted: #9c9a8c;
-      --rule: #3a3d33;
-      --accent: #86c2ab;
-      --accent-contrast: #12211b;
-      --accent-soft: #2a3b32;
-      --warn: #e08669;
-      --warn-soft: #3a2a24;
-      --shadow: 0 1px 0 rgba(0,0,0,0.2), 0 8px 24px -16px rgba(0,0,0,0.6);
-    }
-  }
-  :root[data-theme="dark"] {
-    --bg: #1b1e1a; --surface: #23261f; --surface-2: #292c24; --ink: #ede9df;
-    --ink-muted: #9c9a8c; --rule: #3a3d33; --accent: #86c2ab; --accent-contrast: #12211b;
-    --accent-soft: #2a3b32; --warn: #e08669; --warn-soft: #3a2a24;
-    --shadow: 0 1px 0 rgba(0,0,0,0.2), 0 8px 24px -16px rgba(0,0,0,0.6);
-  }
-  :root[data-theme="light"] {
-    --bg: #eeede6; --surface: #fbfaf6; --surface-2: #f4f2ea; --ink: #23241f;
-    --ink-muted: #6b6a61; --rule: #d8d6c9; --accent: #2f5d50; --accent-contrast: #ffffff;
-    --accent-soft: #dce8e1; --warn: #b4442e; --warn-soft: #f3ddd6;
-    --shadow: 0 1px 0 rgba(35,36,31,0.04), 0 8px 24px -16px rgba(35,36,31,0.25);
-  }
-
-  * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; }
-  body {
-    background: var(--bg);
-    color: var(--ink);
-    font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
-      "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
-    min-height: 100vh;
-    -webkit-font-smoothing: antialiased;
-  }
-  .num { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }
-
-  .page {
-    max-width: 560px;
-    margin: 0 auto;
-    padding: 40px 20px 80px;
-  }
-
-  .eyebrow {
-    font-size: 12px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--accent);
-    font-weight: 700;
-    margin: 0 0 6px;
-  }
-  h1.title {
-    font-size: 26px;
-    font-weight: 800;
-    letter-spacing: -0.01em;
-    margin: 0 0 28px;
-    text-wrap: balance;
-  }
-
-  /* ruled top rail */
-  .rail {
-    height: 1px;
-    background: repeating-linear-gradient(to right, var(--rule) 0 6px, transparent 6px 12px);
-    margin-bottom: 24px;
-  }
-
-  button {
-    font-family: inherit;
-    cursor: pointer;
-  }
-  .btn {
-    appearance: none;
-    border: 1px solid var(--rule);
-    background: var(--surface);
-    color: var(--ink);
-    border-radius: 8px;
-    padding: 10px 16px;
-    font-size: 14px;
-    font-weight: 600;
-    transition: border-color 0.15s ease, background 0.15s ease, transform 0.05s ease;
-  }
-  .btn:hover { border-color: var(--accent); }
-  .btn:active { transform: translateY(1px); }
-  .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .btn-primary {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: var(--accent-contrast);
-  }
-  .btn-primary:hover { filter: brightness(1.05); }
-  .btn-ghost {
-    background: transparent;
-    border-color: transparent;
-    color: var(--ink-muted);
-  }
-  .btn-ghost:hover { color: var(--warn); border-color: var(--warn-soft); background: var(--warn-soft); }
-  .btn-block { width: 100%; }
-  .btn-row { display: flex; gap: 10px; }
-
-  /* ---------- list view ---------- */
-  .empty {
-    border: 1px dashed var(--rule);
-    border-radius: 12px;
-    padding: 36px 20px;
-    text-align: center;
-    color: var(--ink-muted);
-    font-size: 14px;
-    line-height: 1.6;
-  }
-  .card-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--rule);
-    border-radius: 12px;
-    padding: 16px 18px;
-    box-shadow: var(--shadow);
-    cursor: pointer;
-    transition: border-color 0.15s ease;
-  }
-  .card:hover { border-color: var(--accent); }
-  .card-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
-  .card-title { font-size: 15px; font-weight: 700; }
-  .card-date { font-size: 11px; color: var(--ink-muted); flex-shrink: 0; }
-  .bar-track { height: 6px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
-  .bar-fill { height: 100%; background: var(--accent); border-radius: 4px; transition: width 0.25s ease; }
-  .card-bottom { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
-  .card-frac { font-size: 12px; color: var(--ink-muted); }
-  .card-done { font-size: 11px; font-weight: 700; color: var(--accent); letter-spacing: 0.04em; }
-
-  /* ---------- input view ---------- */
-  .field-label {
-    font-size: 12px; font-weight: 700; color: var(--ink-muted);
-    text-transform: uppercase; letter-spacing: 0.08em; margin: 0 0 8px; display: block;
-  }
-  input[type="text"], textarea, select {
-    width: 100%;
-    background: var(--surface);
-    border: 1px solid var(--rule);
-    border-radius: 10px;
-    color: var(--ink);
-    font-family: inherit;
-    font-size: 14px;
-    padding: 12px 14px;
-  }
-  select { cursor: pointer; }
-  input[type="text"]:focus, textarea:focus, select:focus {
-    outline: none; border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-soft);
-  }
-  textarea { line-height: 1.65; resize: vertical; min-height: 220px; margin-bottom: 18px; }
-  .input-block { margin-bottom: 18px; }
-  .hint { font-size: 12px; color: var(--ink-muted); margin: 8px 0 0; line-height: 1.6; }
-  .hint a { color: var(--accent); }
-  .hint code {
-    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-    background: var(--surface-2); border-radius: 4px; padding: 1px 5px; font-size: 11.5px;
-  }
-
-  .tab-row { display: flex; gap: 6px; margin-bottom: 16px; border-bottom: 1px solid var(--rule); }
-  .tab-btn {
-    appearance: none; background: none; border: none; border-bottom: 2px solid transparent;
-    color: var(--ink-muted); font-family: inherit; font-size: 13px; font-weight: 700;
-    padding: 10px 4px; margin-bottom: -1px; cursor: pointer;
-  }
-  .tab-btn:hover { color: var(--ink); }
-  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
-  .tab-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-
-  #btn-build { margin-top: 4px; }
-
-  .dropzone {
-    border: 1.5px dashed var(--rule); border-radius: 12px;
-    padding: 28px 16px; text-align: center; cursor: pointer;
-    background: var(--surface); transition: border-color 0.15s ease, background 0.15s ease;
-  }
-  .dropzone:hover, .dropzone.drag-over { border-color: var(--accent); background: var(--accent-soft); }
-  .dropzone:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .dropzone-title { font-size: 14px; font-weight: 700; margin: 0 0 4px; }
-  .dropzone-sub { font-size: 12px; color: var(--ink-muted); margin: 0; }
-  .dropzone img#preview-img { max-width: 100%; max-height: 240px; border-radius: 8px; display: block; margin: 0 auto; }
-
-  .status-msg { font-size: 12px; margin: 10px 2px 0; line-height: 1.6; }
-  .status-msg.is-error { color: var(--warn); }
-  .status-msg.is-loading { color: var(--ink-muted); }
-  .status-msg.is-ok { color: var(--accent); font-weight: 600; }
-
-  .spinner {
-    display: inline-block; width: 11px; height: 11px; border-radius: 50%;
-    border: 2px solid var(--rule); border-top-color: var(--accent);
-    animation: spin 0.7s linear infinite; margin-right: 6px; vertical-align: -1px;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
-
-  /* ---------- detail view ---------- */
-  .detail-head { margin-bottom: 20px; }
-  .back-link {
-    background: none; border: none; color: var(--ink-muted); font-size: 13px;
-    padding: 0; margin-bottom: 14px; display: inline-flex; align-items: center; gap: 4px;
-  }
-  .back-link:hover { color: var(--accent); }
-  .detail-title-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
-  .detail-title {
-    font-size: 21px; font-weight: 800; letter-spacing: -0.01em;
-    background: transparent; border: none; color: var(--ink); font-family: inherit;
-    flex: 1; padding: 2px 0; border-bottom: 1px solid transparent;
-  }
-  .detail-title:focus { outline: none; border-bottom-color: var(--accent); }
-  .progress-row { display: flex; align-items: center; gap: 12px; margin-bottom: 26px; }
-  .progress-row .bar-track { flex: 1; height: 8px; }
-  .progress-frac { font-size: 13px; color: var(--ink-muted); flex-shrink: 0; }
-  .progress-pct { font-size: 13px; font-weight: 700; color: var(--accent); flex-shrink: 0; min-width: 34px; text-align: right; }
-
-  .stamp {
-    display: inline-flex; align-items: center; gap: 6px;
-    background: var(--accent-soft); color: var(--accent);
-    font-size: 12px; font-weight: 700; letter-spacing: 0.04em;
-    padding: 5px 10px; border-radius: 999px; margin-bottom: 20px;
-  }
-
-  ul.tree, ul.tree ul { list-style: none; margin: 0; padding: 0; }
-  ul.tree { border-top: 1px solid var(--rule); }
-  ul.tree li { border-bottom: 1px solid var(--rule); }
-  ul.tree ul { border-top: 1px solid var(--rule); }
-  ul.tree ul li:last-child { border-bottom: none; }
-  .item-row {
-    display: flex; align-items: flex-start; gap: 10px;
-    padding: 11px 2px;
-  }
-
-  .chk {
-    appearance: none; -webkit-appearance: none;
-    width: 19px; height: 19px; flex-shrink: 0; margin-top: 1px;
-    border: 1.5px solid var(--ink-muted); border-radius: 5px;
-    background: var(--surface);
-    position: relative;
-    transition: border-color 0.15s ease, background 0.15s ease, transform 0.12s ease;
-  }
-  .chk:hover { border-color: var(--accent); transform: scale(1.12); }
-  .chk:active { transform: scale(0.9); }
-  .chk[aria-checked="true"] { background: var(--accent); border-color: var(--accent); }
-  .chk[aria-checked="true"]::after {
-    content: ""; position: absolute; left: 3px; top: 5px;
-    width: 11px; height: 6px;
-    border-left: 2px solid var(--accent-contrast);
-    border-bottom: 2px solid var(--accent-contrast);
-    transform: rotate(-45deg);
-    animation: chk-pop 0.24s cubic-bezier(0.34, 1.56, 0.64, 1);
-  }
-  .chk[aria-checked="mixed"] { border-color: var(--accent); }
-  .chk[aria-checked="mixed"]::after {
-    content: ""; position: absolute; left: 4px; top: 8px;
-    width: 9px; height: 2px; background: var(--accent); border-radius: 1px;
-  }
-  @keyframes chk-pop {
-    0% { transform: rotate(-45deg) scale(0); opacity: 0; }
-    55% { transform: rotate(-45deg) scale(1.25); opacity: 1; }
-    100% { transform: rotate(-45deg) scale(1); }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .chk { transition: border-color 0.15s ease, background 0.15s ease; }
-    .chk:hover, .chk:active { transform: none; }
-    .chk[aria-checked="true"]::after { animation: none; }
-  }
-  .chk:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-
-  .item-text {
-    font-size: 14.5px; line-height: 1.55; padding-top: 0px; cursor: pointer;
-  }
-  .item-row[data-leaf="0"] .item-text { font-weight: 700; }
-  .item-row[data-checked="true"] .item-text {
-    color: var(--ink-muted); text-decoration: line-through; text-decoration-color: var(--rule);
-  }
-
-  .detail-actions { display: flex; gap: 10px; margin-top: 28px; }
-
-  .footer-note { text-align: center; font-size: 11px; color: var(--ink-muted); margin-top: 40px; }
-
-  [hidden] { display: none !important; }
-</style>
-
+<script>
+  try {
+    var savedTheme = localStorage.getItem("checklist_note_theme_v1");
+    if (savedTheme === "light" || savedTheme === "dark") document.documentElement.setAttribute("data-theme", savedTheme);
+  } catch (e) {}
+</script>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
 <div class="page">
-  <p class="eyebrow">학습 플래너</p>
-  <h1 class="title">체크리스트 노트</h1>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">학습 플래너</p>
+      <h1 class="title">체크리스트 노트</h1>
+    </div>
+    <div class="topbar-actions">
+      <button type="button" class="chip" id="btn-account">
+        <span class="chip-dot" id="sync-dot"></span>
+        <span class="chip-label" id="account-label">동기화</span>
+      </button>
+      <button type="button" class="icon-btn" id="btn-theme"></button>
+    </div>
+  </header>
   <div class="rail"></div>
 
   <!-- LIST VIEW -->
   <section id="view-list">
     <button class="btn btn-primary btn-block" id="btn-new" style="margin-bottom:20px;">+ 새 체크리스트 만들기</button>
+    <p class="list-hint">캡처한 이미지를 <kbd>Ctrl</kbd>+<kbd>V</kbd> 하면 바로 인식해요</p>
     <div class="card-list" id="card-list"></div>
     <p class="empty" id="empty-state" hidden>
       아직 만든 체크리스트가 없어요.<br>
@@ -330,26 +56,29 @@
       <div class="input-block">
         <label class="field-label" for="text-input">할 일 목록</label>
         <textarea id="text-input" spellcheck="false"></textarea>
-        <p class="hint">"1. 문법" "1) 워크북" 같은 번호나 "3. 맵: 238~244" 처럼 쓰인 목록이면 자동으로 들여쓰기 구조를 알아서 잡아줘요. 줄 앞에서 <code>Tab</code>이나 스페이스 4칸을 누르면 그만큼 더 들여써져요 (Shift+Tab으로 내어쓰기).</p>
+        <p class="hint">"1. 문법" "1) 워크북" 같은 번호를 쓰면 구조를 알아서 잡아줘요. 줄 앞에서 <code>Tab</code>이나 스페이스 4칸을 누르면 한 단계 더 들여써져요 (Shift+Tab으로 내어쓰기).</p>
       </div>
     </div>
 
     <div id="panel-image" hidden>
       <div class="input-block">
-        <p class="hint">
-          로컬에서 실행 중인 <strong>Ollama</strong>로 인식해요 — 키도 없고 사진이 인터넷으로 나가지도 않아요.<br>
-          처음이라면: <code>ollama pull minicpm-v</code> 로 문서 인식에 강한 비전 모델을 받고, <code>OLLAMA_ORIGINS=*</code> 설정 후 Ollama를 켜두세요. 아래 "인식하기"를 눌렀을 때 연결 오류가 나면 이 설정을 확인하세요.
-        </p>
+        <label class="field-label" for="model-select">인식 모델</label>
+        <select id="model-select"></select>
+        <p class="hint" id="model-hint">내 컴퓨터에서 실행 중인 Ollama로 인식해요. 사진이 인터넷으로 나가지 않아요.</p>
       </div>
       <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="숙제 사진 선택">
         <div id="dropzone-empty">
           <p class="dropzone-title">숙제 사진을 올려주세요</p>
-          <p class="dropzone-sub">클릭해서 선택하거나 이미지를 끌어다 놓으세요</p>
+          <p class="dropzone-sub">클릭해서 선택하거나, 끌어다 놓거나, Ctrl+V로 붙여넣으세요</p>
         </div>
         <img id="preview-img" alt="선택한 이미지 미리보기" hidden>
       </div>
       <input type="file" id="file-input" accept="image/*" hidden>
-      <button class="btn btn-primary btn-block" id="btn-recognize" style="margin-top:14px;" disabled>이미지에서 목록 인식하기</button>
+      <div class="btn-row recognize-row">
+        <button class="btn btn-primary btn-block" id="btn-recognize" disabled>이미지에서 목록 인식하기</button>
+        <button class="btn" id="btn-stop" hidden>중지</button>
+      </div>
+      <pre class="stream-preview" id="stream-preview" hidden></pre>
       <p class="status-msg" id="recognize-status" hidden></p>
     </div>
 
@@ -360,7 +89,7 @@
   <section id="view-detail" hidden>
     <button class="back-link" id="btn-back">&larr; 목록으로</button>
     <div class="detail-title-row">
-      <input type="text" class="detail-title" id="detail-title">
+      <input type="text" class="detail-title" id="detail-title" aria-label="체크리스트 제목">
     </div>
     <div id="stamp-done" class="stamp" hidden>&#10003; 오늘의 할 일 완료</div>
     <div class="progress-row">
@@ -371,539 +100,61 @@
     <ul class="tree" id="tree-root"></ul>
     <div class="detail-actions">
       <button class="btn btn-primary" id="btn-edit-list">수정</button>
+      <button class="btn" id="btn-carry-over">남은 것만 새로 만들기</button>
       <button class="btn" id="btn-reset">체크 초기화</button>
-      <button class="btn btn-ghost" id="btn-delete">이 체크리스트 삭제</button>
+      <button class="btn btn-ghost" id="btn-delete">삭제</button>
     </div>
   </section>
 
-  <p class="footer-note">체크 상태는 이 브라우저에 자동 저장됩니다</p>
+  <p class="footer-note" id="footer-note"></p>
 </div>
 
-<script>
-(function () {
-  "use strict";
+<dialog class="dialog" id="account-dialog" aria-labelledby="account-title">
+  <h2 class="dialog-title" id="account-title">아이디로 동기화</h2>
 
-  var STORAGE_KEY = "checklist_note_lists_v1";
+  <div id="account-signed-out">
+    <p class="dialog-text">비밀번호 없이 아이디만 입력하면 PC와 폰에서 같은 체크리스트를 볼 수 있어요. 아이디를 아는 사람은 누구나 볼 수 있으니 남이 짐작하기 어려운 걸로 정해주세요.</p>
+    <label class="field-label" for="account-id-input">아이디</label>
+    <input type="text" id="account-id-input" autocomplete="username" spellcheck="false" placeholder="영문 · 숫자 · 한글 · _ - (2~32자)">
+    <p class="status-msg is-error" id="account-error" hidden></p>
+    <div class="dialog-actions">
+      <button class="btn" type="button" data-close-dialog>닫기</button>
+      <button class="btn btn-primary" type="button" id="account-login">연결하기</button>
+    </div>
+  </div>
 
-  var state = { lists: [], activeId: null };
+  <div id="account-signed-in" hidden>
+    <p class="dialog-text"><strong id="account-current-id"></strong> 아이디로 동기화하고 있어요.</p>
+    <p class="hint" id="account-last-sync"></p>
+    <div class="dialog-actions">
+      <button class="btn btn-ghost" type="button" id="account-logout">연결 끊기</button>
+      <button class="btn" type="button" id="account-sync-now">지금 동기화</button>
+      <button class="btn btn-primary" type="button" data-close-dialog>닫기</button>
+    </div>
+  </div>
 
-  function loadLists() {
-    try {
-      var raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch (e) { return []; }
-  }
-  function saveLists() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.lists));
-  }
-  function uid() {
-    return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-  }
-  function todayLabel() {
-    var d = new Date();
-    return (d.getMonth() + 1) + "/" + d.getDate() + " 체크리스트";
-  }
+  <div id="account-unconfigured" hidden>
+    <p class="dialog-text">동기화 서버가 아직 연결되지 않아서 지금은 이 브라우저에만 저장돼요.</p>
+    <p class="hint"><code>js/config.js</code>에 Supabase 주소와 키를 넣으면 켜져요. 설정 방법은 README에 있어요.</p>
+    <div class="dialog-actions">
+      <button class="btn btn-primary" type="button" data-close-dialog>닫기</button>
+    </div>
+  </div>
+</dialog>
 
-  // ---------- parsing ----------
-  function detectMarkerLevel(line, prevLevel) {
-    if (/^\d+[.)]\s*\d*[.)]\s*/.test(line)) return 0; // safety, unlikely
-    if (/^\d+\.(?!\d)\s*/.test(line)) return 0;
-    if (/^\(\d+\)\s*/.test(line)) return 1;
-    if (/^\d+\)\s*/.test(line)) return 1;
-    if (/^[a-zA-Z]\)\s*/.test(line)) return 2;
-    if (/^[-•‣▪●·]\s*/.test(line)) return prevLevel >= 0 ? prevLevel : 0;
-    return prevLevel >= 0 ? prevLevel : 0;
-  }
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
-  // Leading tabs/spaces (Tab = 1 level, every 4 spaces = 1 level) promote an
-  // item deeper than its marker alone would imply — never shallower.
-  function leadingIndentLevel(rawLine) {
-    var lead = rawLine.match(/^[ \t]*/)[0];
-    var tabCount = (lead.match(/\t/g) || []).length;
-    var spaceCount = (lead.match(/ /g) || []).length;
-    return tabCount + Math.floor(spaceCount / 4);
-  }
-
-  function parseText(text) {
-    var rawLines = text.split("\n");
-    var flat = [];
-    var prevLevel = -1;
-    for (var i = 0; i < rawLines.length; i++) {
-      var raw = rawLines[i];
-      var line = raw.trim();
-      if (!line) continue;
-      var wsLevel = leadingIndentLevel(raw);
-      var markerLevel = detectMarkerLevel(line, prevLevel);
-      var level = Math.max(wsLevel, markerLevel);
-      flat.push({ id: uid(), text: line, level: level });
-      prevLevel = level;
-    }
-    return flat;
-  }
-
-  function buildTree(flat) {
-    var root = { children: [] };
-    var stack = [{ node: root, level: -1 }];
-    for (var i = 0; i < flat.length; i++) {
-      var item = flat[i];
-      var node = { id: item.id, text: item.text, children: [] };
-      while (stack[stack.length - 1].level >= item.level) stack.pop();
-      stack[stack.length - 1].node.children.push(node);
-      stack.push({ node: node, level: item.level });
-    }
-    return root.children;
-  }
-
-  function collectLeafIds(node, out) {
-    if (node.children.length === 0) { out.push(node.id); return out; }
-    for (var i = 0; i < node.children.length; i++) collectLeafIds(node.children[i], out);
-    return out;
-  }
-
-  function nodeState(node, checkedSet) {
-    var leaves = collectLeafIds(node, []);
-    if (leaves.length === 0) return "false";
-    var checkedCount = 0;
-    for (var i = 0; i < leaves.length; i++) if (checkedSet[leaves[i]]) checkedCount++;
-    if (checkedCount === 0) return "false";
-    if (checkedCount === leaves.length) return "true";
-    return "mixed";
-  }
-
-  // ---------- rendering: list view ----------
-  var elCardList = document.getElementById("card-list");
-  var elEmptyState = document.getElementById("empty-state");
-
-  function renderList() {
-    elCardList.innerHTML = "";
-    if (state.lists.length === 0) {
-      elEmptyState.hidden = false;
-      return;
-    }
-    elEmptyState.hidden = true;
-    var sorted = state.lists.slice().sort(function (a, b) { return b.createdAt - a.createdAt; });
-    for (var i = 0; i < sorted.length; i++) {
-      elCardList.appendChild(renderCard(sorted[i]));
-    }
-  }
-
-  function renderCard(list) {
-    var tree = buildTree(list.lines);
-    var leaves = [];
-    for (var i = 0; i < tree.length; i++) collectLeafIds(tree[i], leaves);
-    var total = leaves.length;
-    var done = 0;
-    for (var j = 0; j < leaves.length; j++) if (list.checked[leaves[j]]) done++;
-    var pct = total > 0 ? Math.round((done / total) * 100) : 0;
-
-    var card = document.createElement("div");
-    card.className = "card";
-    card.tabIndex = 0;
-    card.setAttribute("role", "button");
-
-    var dateStr = new Date(list.createdAt).toLocaleDateString("ko-KR", { month: "short", day: "numeric" });
-
-    card.innerHTML =
-      '<div class="card-top">' +
-        '<span class="card-title"></span>' +
-        '<span class="card-date num"></span>' +
-      '</div>' +
-      '<div class="bar-track"><div class="bar-fill" style="width:' + pct + '%"></div></div>' +
-      '<div class="card-bottom">' +
-        '<span class="card-frac num">' + done + ' / ' + total + '</span>' +
-        (pct === 100 && total > 0 ? '<span class="card-done">완료 &#10003;</span>' : '<span class="card-pct num" style="font-size:11px;color:var(--ink-muted);">' + pct + '%</span>') +
-      '</div>';
-    card.querySelector(".card-title").textContent = list.title;
-    card.querySelector(".card-date").textContent = dateStr;
-
-    card.addEventListener("click", function () { openDetail(list.id); });
-    card.addEventListener("keydown", function (e) {
-      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openDetail(list.id); }
-    });
-    return card;
-  }
-
-  // ---------- rendering: detail view ----------
-  var elTreeRoot = document.getElementById("tree-root");
-  var elDetailTitle = document.getElementById("detail-title");
-  var elDetailBar = document.getElementById("detail-bar");
-  var elDetailFrac = document.getElementById("detail-frac");
-  var elDetailPct = document.getElementById("detail-pct");
-  var elStampDone = document.getElementById("stamp-done");
-
-  function getActiveList() {
-    for (var i = 0; i < state.lists.length; i++) {
-      if (state.lists[i].id === state.activeId) return state.lists[i];
-    }
-    return null;
-  }
-
-  function linesToText(lines) {
-    return lines.map(function (l) {
-      var indent = new Array(l.level + 1).join("    ");
-      return indent + l.text;
-    }).join("\n");
-  }
-
-  function renderDetail() {
-    var list = getActiveList();
-    if (!list) return;
-    elDetailTitle.value = list.title;
-    var tree = buildTree(list.lines);
-
-    elTreeRoot.innerHTML = "";
-    for (var i = 0; i < tree.length; i++) elTreeRoot.appendChild(renderNode(tree[i], 0, list.checked));
-
-    var leaves = [];
-    for (var j = 0; j < tree.length; j++) collectLeafIds(tree[j], leaves);
-    var total = leaves.length;
-    var done = 0;
-    for (var k = 0; k < leaves.length; k++) if (list.checked[leaves[k]]) done++;
-    var pct = total > 0 ? Math.round((done / total) * 100) : 0;
-
-    elDetailBar.style.width = pct + "%";
-    elDetailFrac.textContent = done + " / " + total;
-    elDetailPct.textContent = pct + "%";
-    elStampDone.hidden = !(total > 0 && done === total);
-  }
-
-  function renderNode(node, depth, checkedSet) {
-    var li = document.createElement("li");
-    var isLeaf = node.children.length === 0;
-    var st = isLeaf ? (checkedSet[node.id] ? "true" : "false") : nodeState(node, checkedSet);
-
-    var row = document.createElement("div");
-    row.className = "item-row";
-    row.setAttribute("data-leaf", isLeaf ? "1" : "0");
-    row.setAttribute("data-checked", st === "true" ? "true" : "false");
-    if (depth > 0) row.style.paddingLeft = (depth * 22) + "px";
-
-    var chk = document.createElement("button");
-    chk.className = "chk";
-    chk.setAttribute("role", "checkbox");
-    chk.setAttribute("aria-checked", st);
-    chk.addEventListener("click", function () { toggleNode(node); });
-    row.appendChild(chk);
-
-    var txt = document.createElement("span");
-    txt.className = "item-text";
-    txt.textContent = node.text;
-    txt.addEventListener("click", function () { toggleNode(node); });
-    row.appendChild(txt);
-
-    li.appendChild(row);
-
-    if (node.children.length > 0) {
-      var ul = document.createElement("ul");
-      for (var i = 0; i < node.children.length; i++) {
-        ul.appendChild(renderNode(node.children[i], depth + 1, checkedSet));
-      }
-      li.appendChild(ul);
-    }
-    return li;
-  }
-
-  function toggleNode(node) {
-    var list = getActiveList();
-    if (!list) return;
-    var leaves = collectLeafIds(node, []);
-    var curState = leaves.length && leaves.every(function (id) { return list.checked[id]; });
-    var next = !curState;
-    for (var i = 0; i < leaves.length; i++) {
-      if (next) list.checked[leaves[i]] = true;
-      else delete list.checked[leaves[i]];
-    }
-    saveLists();
-    renderDetail();
-  }
-
-  // ---------- view switching ----------
-  var viewList = document.getElementById("view-list");
-  var viewInput = document.getElementById("view-input");
-  var viewDetail = document.getElementById("view-detail");
-
-  function showView(name) {
-    viewList.hidden = name !== "list";
-    viewInput.hidden = name !== "input";
-    viewDetail.hidden = name !== "detail";
-  }
-
-  function openDetail(id) {
-    state.activeId = id;
-    renderDetail();
-    showView("detail");
-  }
-
-  // ---------- image recognition (local Ollama, no API key) ----------
-  var OLLAMA_URL = "http://localhost:11434/api/chat";
-  // llava tends to hallucinate on dense/Korean text instead of reading it.
-  // minicpm-v is built for document/scene-text OCR and handles Korean much
-  // better. If it still struggles, try "qwen2.5vl" (run `ollama pull <name>`
-  // first; confirm the exact current tag at https://ollama.com/library).
-  var OLLAMA_MODEL = "minicpm-v";
-  var RECOGNIZE_PROMPT = "이 이미지는 숙제나 할 일 목록이 적힌 사진이야. 이미지에 실제로 적혀 있는 텍스트만 그대로 옮겨 적어줘 — 내용을 지어내거나 추측해서 채우면 안 돼. 위에서 아래 순서 그대로, 원래 적혀 있는 번호나 기호(예: '1.', '1)', '-') 형식을 그대로 유지해서 한 줄에 한 항목씩 옮겨 적어줘. 글자가 흐리거나 잘 안 보이는 부분은 지어내지 말고 그 줄에 '[읽을 수 없음]'이라고 써줘. 목록에 없는 설명, 인사말, 코드블록 표시는 절대 넣지 말고 목록 내용만 출력해줘.";
-
-  var tabBtnText = document.getElementById("tab-btn-text");
-  var tabBtnImage = document.getElementById("tab-btn-image");
-  var panelText = document.getElementById("panel-text");
-  var panelImage = document.getElementById("panel-image");
-  var elDropzone = document.getElementById("dropzone");
-  var elFileInput = document.getElementById("file-input");
-  var elPreviewImg = document.getElementById("preview-img");
-  var elDropzoneEmpty = document.getElementById("dropzone-empty");
-  var elBtnRecognize = document.getElementById("btn-recognize");
-  var elRecognizeStatus = document.getElementById("recognize-status");
-  var selectedImageBase64 = null;
-  var selectedImageMime = null;
-
-  function recognizeWithOllama(mime, base64) {
-    var body = {
-      model: OLLAMA_MODEL,
-      stream: false,
-      messages: [{
-        role: "user",
-        content: RECOGNIZE_PROMPT,
-        images: [base64]
-      }]
-    };
-    return fetch(OLLAMA_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    }).then(function (res) {
-      return res.json().then(function (json) { return { ok: res.ok, json: json }; });
-    }).then(function (result) {
-      if (!result.ok) {
-        var errMsg = (result.json && result.json.error) || "Ollama 요청이 실패했어요.";
-        if (/model .* not found/i.test(errMsg)) {
-          errMsg = "'" + OLLAMA_MODEL + "' 모델이 없어요. 터미널에서 'ollama pull " + OLLAMA_MODEL + "' 로 먼저 받아주세요.";
-        }
-        throw new Error(errMsg);
-      }
-      var text = result.json.message && result.json.message.content;
-      return text && text.trim();
-    });
-  }
-
-  function setActiveTab(name) {
-    var isText = name === "text";
-    panelText.hidden = !isText;
-    panelImage.hidden = isText;
-    tabBtnText.classList.toggle("active", isText);
-    tabBtnText.setAttribute("aria-selected", isText ? "true" : "false");
-    tabBtnImage.classList.toggle("active", !isText);
-    tabBtnImage.setAttribute("aria-selected", !isText ? "true" : "false");
-  }
-  tabBtnText.addEventListener("click", function () { setActiveTab("text"); });
-  tabBtnImage.addEventListener("click", function () { setActiveTab("image"); });
-
-  function resetImagePanel() {
-    selectedImageBase64 = null;
-    selectedImageMime = null;
-    elFileInput.value = "";
-    elPreviewImg.hidden = true;
-    elPreviewImg.src = "";
-    elDropzoneEmpty.hidden = false;
-    elBtnRecognize.disabled = true;
-    showRecognizeStatus("", "");
-    setActiveTab("text");
-  }
-
-  function showRecognizeStatus(msg, kind) {
-    if (!msg) { elRecognizeStatus.hidden = true; elRecognizeStatus.textContent = ""; return; }
-    elRecognizeStatus.hidden = false;
-    elRecognizeStatus.className = "status-msg" + (kind ? " is-" + kind : "");
-    elRecognizeStatus.innerHTML = kind === "loading" ? '<span class="spinner"></span>' + msg : msg;
-  }
-
-  elDropzone.addEventListener("click", function () { elFileInput.click(); });
-  elDropzone.addEventListener("keydown", function (e) {
-    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); elFileInput.click(); }
-  });
-  elDropzone.addEventListener("dragover", function (e) { e.preventDefault(); elDropzone.classList.add("drag-over"); });
-  elDropzone.addEventListener("dragleave", function () { elDropzone.classList.remove("drag-over"); });
-  elDropzone.addEventListener("drop", function (e) {
-    e.preventDefault();
-    elDropzone.classList.remove("drag-over");
-    var file = e.dataTransfer.files && e.dataTransfer.files[0];
-    if (file) handleImageFile(file);
-  });
-  elFileInput.addEventListener("change", function () {
-    var file = elFileInput.files && elFileInput.files[0];
-    if (file) handleImageFile(file);
-  });
-
-  function handleImageFile(file) {
-    if (!/^image\//.test(file.type)) {
-      showRecognizeStatus("이미지 파일만 올릴 수 있어요.", "error");
-      return;
-    }
-    var reader = new FileReader();
-    reader.onload = function () {
-      var dataUrl = reader.result;
-      var comma = dataUrl.indexOf(",");
-      selectedImageBase64 = dataUrl.slice(comma + 1);
-      selectedImageMime = file.type;
-      elPreviewImg.src = dataUrl;
-      elPreviewImg.hidden = false;
-      elDropzoneEmpty.hidden = true;
-      elBtnRecognize.disabled = false;
-      showRecognizeStatus("", "");
-    };
-    reader.readAsDataURL(file);
-  }
-
-  elBtnRecognize.addEventListener("click", function () {
-    if (!selectedImageBase64) { showRecognizeStatus("먼저 이미지를 선택해주세요.", "error"); return; }
-
-    elBtnRecognize.disabled = true;
-    showRecognizeStatus("Ollama로 이미지에서 목록을 읽는 중...", "loading");
-
-    recognizeWithOllama(selectedImageMime, selectedImageBase64)
-      .then(function (text) {
-        if (!text) throw new Error("이미지에서 목록을 찾지 못했어요. 더 선명한 사진으로 시도해보세요.");
-        document.getElementById("text-input").value = text;
-        showRecognizeStatus("인식 완료! 아래에서 내용을 확인하고 필요하면 수정하세요.", "ok");
-        setActiveTab("text");
-      })
-      .catch(function (err) {
-        var msg = err && err.message;
-        if (!msg || /fetch/i.test(msg) || err instanceof TypeError) {
-          msg = "Ollama 서버에 연결할 수 없어요. 'ollama serve'가 켜져 있는지, OLLAMA_ORIGINS 설정을 했는지 확인해주세요.";
-        }
-        showRecognizeStatus(msg, "error");
-      })
-      .finally(function () {
-        elBtnRecognize.disabled = false;
-      });
-  });
-
-  // ---------- events ----------
-  var elBtnBuild = document.getElementById("btn-build");
-  var elTextInput = document.getElementById("text-input");
-  var editingListId = null;
-
-  elTextInput.addEventListener("keydown", function (e) {
-    if (e.key !== "Tab") return;
-    e.preventDefault();
-    var ta = e.target;
-    var value = ta.value;
-    var pos = ta.selectionStart;
-    var lineStart = value.lastIndexOf("\n", pos - 1) + 1;
-
-    if (e.shiftKey) {
-      var m = value.slice(lineStart).match(/^(\t| {1,4})/);
-      if (!m) return;
-      var removeLen = m[0].length;
-      ta.value = value.slice(0, lineStart) + value.slice(lineStart + removeLen);
-      var newPos = Math.max(lineStart, pos - removeLen);
-      ta.selectionStart = ta.selectionEnd = newPos;
-    } else {
-      var indent = "    ";
-      ta.value = value.slice(0, pos) + indent + value.slice(ta.selectionEnd);
-      ta.selectionStart = ta.selectionEnd = pos + indent.length;
-    }
-  });
-
-  document.getElementById("btn-new").addEventListener("click", function () {
-    editingListId = null;
-    elBtnBuild.textContent = "체크리스트 만들기";
-    document.getElementById("title-input").value = todayLabel();
-    document.getElementById("text-input").value = "";
-    resetImagePanel();
-    showView("input");
-  });
-  document.getElementById("btn-edit-list").addEventListener("click", function () {
-    var list = getActiveList();
-    if (!list) return;
-    editingListId = list.id;
-    elBtnBuild.textContent = "체크리스트 수정하기";
-    document.getElementById("title-input").value = list.title;
-    document.getElementById("text-input").value = linesToText(list.lines);
-    resetImagePanel();
-    setActiveTab("text");
-    showView("input");
-  });
-  document.getElementById("btn-cancel-new").addEventListener("click", function () {
-    editingListId = null;
-    elBtnBuild.textContent = "체크리스트 만들기";
-    showView(state.activeId ? "detail" : "list");
-  });
-  elBtnBuild.addEventListener("click", function () {
-    var text = document.getElementById("text-input").value;
-    var newLines = parseText(text);
-    if (newLines.length === 0) return;
-    var title = document.getElementById("title-input").value.trim() || todayLabel();
-
-    if (editingListId) {
-      var list = null;
-      for (var i = 0; i < state.lists.length; i++) {
-        if (state.lists[i].id === editingListId) { list = state.lists[i]; break; }
-      }
-      if (list) {
-        var oldIdByText = {};
-        list.lines.forEach(function (old) { oldIdByText[old.text] = old.id; });
-        var newChecked = {};
-        newLines.forEach(function (nl) {
-          var oldId = oldIdByText[nl.text];
-          if (oldId && list.checked[oldId]) newChecked[nl.id] = true;
-        });
-        list.title = title;
-        list.lines = newLines;
-        list.checked = newChecked;
-        saveLists();
-        renderList();
-        openDetail(list.id);
-      }
-      editingListId = null;
-      elBtnBuild.textContent = "체크리스트 만들기";
-    } else {
-      var newList = { id: uid(), title: title, lines: newLines, checked: {}, createdAt: Date.now() };
-      state.lists.push(newList);
-      saveLists();
-      renderList();
-      openDetail(newList.id);
-    }
-  });
-  document.getElementById("btn-back").addEventListener("click", function () {
-    state.activeId = null;
-    renderList();
-    showView("list");
-  });
-  elDetailTitle.addEventListener("input", function () {
-    var list = getActiveList();
-    if (!list) return;
-    list.title = elDetailTitle.value;
-    saveLists();
-  });
-  elDetailTitle.addEventListener("blur", function () {
-    var list = getActiveList();
-    if (!list) return;
-    if (!list.title.trim()) { list.title = todayLabel(); elDetailTitle.value = list.title; saveLists(); }
-    renderList();
-  });
-  document.getElementById("btn-reset").addEventListener("click", function () {
-    var list = getActiveList();
-    if (!list) return;
-    if (!confirm("모든 체크를 초기화할까요?")) return;
-    list.checked = {};
-    saveLists();
-    renderDetail();
-  });
-  document.getElementById("btn-delete").addEventListener("click", function () {
-    var list = getActiveList();
-    if (!list) return;
-    if (!confirm('"' + list.title + '"을(를) 삭제할까요?')) return;
-    state.lists = state.lists.filter(function (l) { return l.id !== list.id; });
-    saveLists();
-    state.activeId = null;
-    renderList();
-    showView("list");
-  });
-
-  // ---------- init ----------
-  state.lists = loadLists();
-  renderList();
-  showView("list");
-})();
-</script>
+<script src="js/config.js"></script>
+<script src="js/util.js"></script>
+<script src="js/parser.js"></script>
+<script src="js/store.js"></script>
+<script src="js/sync.js"></script>
+<script src="js/ocr.js"></script>
+<script src="js/theme.js"></script>
+<script src="js/view-list.js"></script>
+<script src="js/view-detail.js"></script>
+<script src="js/view-input.js"></script>
+<script src="js/account.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
