@@ -83,24 +83,34 @@
 </div>
 
 <dialog class="dialog" id="account-dialog" aria-labelledby="account-title">
-  <h2 class="dialog-title" id="account-title">아이디로 동기화</h2>
+  <h2 class="dialog-title" id="account-title">계정으로 동기화</h2>
 
   <div id="account-signed-out">
-    <p class="dialog-text">비밀번호 없이 아이디만 입력하면 PC와 폰에서 같은 체크리스트를 볼 수 있어요. 아이디를 아는 사람은 누구나 볼 수 있으니 남이 짐작하기 어려운 걸로 정해주세요.</p>
-    <label class="field-label" for="account-id-input">아이디</label>
-    <input type="text" id="account-id-input" autocomplete="username" spellcheck="false" placeholder="영문 · 숫자 · 한글 · _ - (2~32자)">
+    <p class="dialog-text">이메일과 비밀번호로 로그인하면 PC와 폰에서 같은 체크리스트를 볼 수 있어요. 내 계정으로 저장돼서 다른 사람은 볼 수 없어요. SuperDialer 앱 계정과 같은 계정이에요.</p>
+    <label class="field-label" for="account-email-input">이메일</label>
+    <input type="email" id="account-email-input" autocomplete="username" spellcheck="false" placeholder="name@example.com">
+    <label class="field-label" for="account-password-input">비밀번호</label>
+    <input type="password" id="account-password-input" autocomplete="current-password" placeholder="6자 이상">
     <p class="status-msg is-error" id="account-error" hidden></p>
+    <p class="hint" id="account-legacy-hint" hidden>예전 ‘아이디’ 동기화로 쓰던 체크리스트는 이 브라우저에 그대로 있어요. 로그인하면 계정으로 올라가요.</p>
     <div class="dialog-actions">
       <button class="btn" type="button" data-close-dialog>닫기</button>
-      <button class="btn btn-primary" type="button" id="account-login">연결하기</button>
+      <button class="btn" type="button" id="account-signup">회원가입</button>
+      <button class="btn btn-primary" type="button" id="account-login">로그인</button>
     </div>
   </div>
 
   <div id="account-signed-in" hidden>
-    <p class="dialog-text"><strong id="account-current-id"></strong> 아이디로 동기화하고 있어요.</p>
+    <p class="dialog-text"><strong id="account-current-id"></strong> 계정으로 동기화하고 있어요.</p>
     <p class="hint" id="account-last-sync"></p>
+    <details class="legacy-import">
+      <summary>예전 아이디에서 가져오기</summary>
+      <p class="hint">이전에 아이디만으로 동기화하던 체크리스트를 이 계정으로 합쳐요.</p>
+      <input type="text" id="account-legacy-input" spellcheck="false" placeholder="예전 아이디">
+      <button class="btn" type="button" id="account-legacy-import">가져오기</button>
+    </details>
     <div class="dialog-actions">
-      <button class="btn btn-ghost" type="button" id="account-logout">연결 끊기</button>
+      <button class="btn btn-ghost" type="button" id="account-logout">로그아웃</button>
       <button class="btn" type="button" id="account-sync-now">지금 동기화</button>
       <button class="btn btn-primary" type="button" data-close-dialog>닫기</button>
     </div>

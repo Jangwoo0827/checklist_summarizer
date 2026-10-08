@@ -11,7 +11,7 @@
 - 삭제와 체크 초기화는 바로 되돌릴 수 있습니다.
 - 상위 항목을 체크하면 하위 항목이 모두 체크되고, 상위 항목은 접었다 펼 수 있습니다.
 - **남은 것만 새로 만들기**: 안 끝낸 항목만 모아 오늘 날짜의 새 체크리스트로 넘깁니다.
-- **아이디로 동기화**: 비밀번호 없이 아이디만으로 PC와 폰에서 같은 체크리스트를 봅니다 (설정 필요, 아래 참고).
+- **계정으로 동기화**: 이메일 + 비밀번호로 로그인하면 PC와 폰에서 같은 체크리스트를 봅니다. 내 계정에만 저장되고 다른 사람은 볼 수 없습니다 (설정 필요, 아래 참고).
 - 시스템 / 라이트 / 다크 테마 전환.
 
 ## 크롬 확장 프로그램으로 쓰기
@@ -23,30 +23,35 @@
 3. **압축해제된 확장 프로그램을 로드합니다** → 이 폴더 선택
 4. 퍼즐 조각 아이콘에서 체크리스트 노트를 고정하면, 툴바 아이콘(또는 `Alt+Shift+C`)으로 팝업이 열려요.
 
-팝업 오른쪽 위 ↗ 버튼을 누르면 큰 화면 탭으로 열려요. 확장 프로그램과 웹사이트는 저장 공간이 따로라서, 같은 아이디로 동기화를 연결하면 양쪽에 같은 체크리스트가 보여요.
+팝업 오른쪽 위 ↗ 버튼을 누르면 큰 화면 탭으로 열려요. 확장 프로그램과 웹사이트는 저장 공간이 따로라서, 같은 계정으로 로그인하면 양쪽에 같은 체크리스트가 보여요.
 
-## 아이디 동기화 설정 (Supabase, 무료)
+## 계정 동기화 설정 (Supabase, 무료)
 
 비워두면 이 브라우저에만 저장됩니다.
 
 1. [supabase.com](https://supabase.com)에서 무료 프로젝트를 만듭니다.
-2. **SQL Editor**에서 아래를 실행합니다.
+2. **SQL Editor**에서 아래를 실행합니다. 로그인한 본인만 자기 행을 읽고 쓸 수 있습니다.
    ```sql
-   create table public.user_data (
-     user_id text primary key,
-     data jsonb not null,
+   create table public.checklist_data (
+     user_id uuid primary key references auth.users(id) on delete cascade,
+     data jsonb not null default '{}'::jsonb,
      updated_at timestamptz not null default now()
    );
-   alter table public.user_data enable row level security;
-   create policy "read"   on public.user_data for select to anon using (true);
-   create policy "insert" on public.user_data for insert to anon with check (true);
-   create policy "update" on public.user_data for update to anon using (true) with check (true);
-   grant select, insert, update on public.user_data to anon;
+   alter table public.checklist_data enable row level security;
+   create policy "select_own" on public.checklist_data for select to authenticated using ((select auth.uid()) = user_id);
+   create policy "insert_own" on public.checklist_data for insert to authenticated with check ((select auth.uid()) = user_id);
+   create policy "update_own" on public.checklist_data for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
    ```
-   삭제 권한은 주지 않아서, 누구도 API로 다른 사람의 데이터를 통째로 지울 수는 없습니다.
-3. 프로젝트 설정의 API 화면에서 **Project URL**과 **publishable(anon) key**를 복사해 `js/config.js`에 넣습니다. 이 키는 공개용으로 만들어진 키라 저장소에 올려도 됩니다.
+3. **Authentication > Sign In / Providers > Email**에서 이메일 로그인을 켭니다. 가입 직후 바로 쓰려면 "Confirm email"을 끕니다.
+4. 프로젝트 설정의 API 화면에서 **Project URL**과 **publishable(anon) key**를 복사해 `js/config.js`에 넣습니다. 이 키는 공개용으로 만들어진 키라 저장소에 올려도 됩니다.
 
-비밀번호가 없으므로 아이디를 아는 사람은 누구나 그 체크리스트를 볼 수 있습니다. 남이 짐작하기 어려운 아이디를 쓰세요.
+### 예전 아이디 동기화에서 옮기기
+
+이전에는 아이디만으로 동기화했습니다(`user_data` 테이블). 계정으로 로그인한 뒤 로그인 창의 **예전 아이디에서 가져오기**에 예전 아이디를 입력하면 그 체크리스트가 이 계정으로 합쳐집니다. 이 브라우저에 있던 체크리스트는 로그인하는 순간 계정으로 올라갑니다.
+
+### SuperDialer 앱과 함께 쓰기
+
+SuperDialer 앱의 내장 브라우저에서 이 사이트를 열면 앱 계정이 같은 계정이라 로그인된 채로 열립니다(앱이 이 페이지의 `localStorage`에 한 시간짜리 로그인 정보를 넣어 줍니다. 갱신용 토큰은 주지 않으므로 앱이 열 때마다 새로 넣어요).
 
 ## 구조
 
@@ -62,7 +67,7 @@ js/
   util.js           공통 도구 (id, 날짜, localStorage, 알림)
   parser.js         텍스트 → 항목 구조 변환
   store.js          저장, 기기 간 병합
-  sync.js           Supabase 동기화
+  sync.js           Supabase 로그인 + 동기화
   theme.js          테마 전환
   confetti.js       완료 축하 효과
   view-list.js / view-detail.js / view-input.js / account.js

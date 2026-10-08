@@ -12,7 +12,12 @@
   var secSignedOut = doc.getElementById("account-signed-out");
   var secSignedIn = doc.getElementById("account-signed-in");
   var secUnconfigured = doc.getElementById("account-unconfigured");
-  var elIdInput = doc.getElementById("account-id-input");
+  var elEmail = doc.getElementById("account-email-input");
+  var elPassword = doc.getElementById("account-password-input");
+  var elSignup = doc.getElementById("account-signup");
+  var elLegacyHint = doc.getElementById("account-legacy-hint");
+  var elLegacyInput = doc.getElementById("account-legacy-input");
+  var elLegacyImport = doc.getElementById("account-legacy-import");
   var elError = doc.getElementById("account-error");
   var elLogin = doc.getElementById("account-login");
   var elCurrentId = doc.getElementById("account-current-id");
@@ -33,7 +38,7 @@
     else if (!signedIn) elFooter.textContent = "지금은 이 브라우저에만 저장돼요 · 오른쪽 위 ‘동기화’로 다른 기기와 연결할 수 있어요";
     else if (s.status === "syncing") elFooter.textContent = "동기화 중…";
     else if (s.status === "error") elFooter.textContent = "동기화하지 못했어요 · 바뀐 내용은 이 기기에 저장돼 있고 연결되면 다시 올라가요";
-    else elFooter.textContent = "‘" + s.userId + "’ 아이디로 동기화됨 · " + timeLabel(s.lastSync);
+    else elFooter.textContent = "‘" + s.userId + "’ 계정으로 동기화됨 · " + timeLabel(s.lastSync);
 
     elCurrentId.textContent = s.userId || "";
     elLastSync.textContent = s.status === "error" && s.error
@@ -46,28 +51,47 @@
     secSignedOut.hidden = !sync.configured() || sync.active();
     secSignedIn.hidden = !sync.active();
     elError.hidden = true;
+    elLegacyHint.hidden = !sync.state.legacyId;
+    if (sync.state.legacyId && !elLegacyInput.value) elLegacyInput.value = sync.state.legacyId;
     refresh();
     dialog.showModal();
-    if (!secSignedOut.hidden) elIdInput.focus();
+    if (!secSignedOut.hidden) elEmail.focus();
   }
 
-  function login() {
+  function showError(err) {
+    elError.textContent = err instanceof TypeError
+      ? "동기화 서버에 연결할 수 없어요. 인터넷 연결을 확인해주세요."
+      : err.message;
+    elError.hidden = false;
+  }
+
+  function submit(create) {
     elError.hidden = true;
     elLogin.disabled = true;
-    elLogin.textContent = "연결하는 중...";
-    sync.login(elIdInput.value).then(function () {
+    elSignup.disabled = true;
+    sync.login(elEmail.value, elPassword.value, create).then(function (signedIn) {
+      if (!signedIn) {
+        elError.textContent = "가입했어요! 메일로 보낸 인증 링크를 누른 뒤 로그인해 주세요.";
+        elError.hidden = false;
+        return;
+      }
+      elPassword.value = "";
       dialog.close();
-      util.toast("‘" + sync.state.userId + "’ 아이디로 연결했어요");
+      util.toast("‘" + sync.state.userId + "’ 계정으로 연결했어요");
       CN.app.refresh();
-    }).catch(function (err) {
-      elError.textContent = err instanceof TypeError
-        ? "동기화 서버에 연결할 수 없어요. 인터넷 연결을 확인해주세요."
-        : err.message;
-      elError.hidden = false;
-    }).finally(function () {
+    }).catch(showError).finally(function () {
       elLogin.disabled = false;
-      elLogin.textContent = "연결하기";
+      elSignup.disabled = false;
     });
+  }
+
+  function importLegacy() {
+    elLegacyImport.disabled = true;
+    sync.importLegacy(elLegacyInput.value).then(function () {
+      util.toast("예전 체크리스트를 가져왔어요");
+      CN.app.refresh();
+      refresh();
+    }).catch(function (err) { util.toast(err.message); }).finally(function () { elLegacyImport.disabled = false; });
   }
 
   function logout() {
@@ -76,14 +100,16 @@
     sync.logout();
     dialog.close();
     CN.app.showList();
-    util.toast("연결을 끊었어요");
+    util.toast("로그아웃했어요");
   }
 
   function init() {
     doc.getElementById("btn-account").addEventListener("click", open);
-    elLogin.addEventListener("click", login);
-    elIdInput.addEventListener("keydown", function (e) {
-      if (e.key === "Enter") { e.preventDefault(); login(); }
+    elLogin.addEventListener("click", function () { submit(false); });
+    elSignup.addEventListener("click", function () { submit(true); });
+    elLegacyImport.addEventListener("click", importLegacy);
+    elPassword.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); submit(false); }
     });
     doc.getElementById("account-logout").addEventListener("click", logout);
     doc.getElementById("account-sync-now").addEventListener("click", function () {

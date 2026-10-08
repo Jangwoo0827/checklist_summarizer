@@ -220,7 +220,7 @@ button {
   font-size: 12px; font-weight: 700; color: var(--ink-muted);
   text-transform: uppercase; letter-spacing: 0.08em; margin: 0 0 8px; display: block;
 }
-input[type="text"], textarea, select {
+input[type="text"], input[type="email"], input[type="password"], textarea, select {
   width: 100%;
   background: var(--surface);
   border: 1px solid var(--rule);
@@ -231,7 +231,7 @@ input[type="text"], textarea, select {
   padding: 12px 14px;
 }
 select { cursor: pointer; }
-input[type="text"]:focus, textarea:focus, select:focus {
+input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus, textarea:focus, select:focus {
   outline: none; border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
@@ -433,3 +433,7 @@ html.is-popup .chip { max-width: 130px; }
 html.is-popup #btn-new { margin-bottom: 14px !important; }
 html.is-popup textarea { min-height: 220px; }
 html.is-popup .footer-note { margin-top: 16px; }
+
+.legacy-import { margin: 0 0 16px; font-size: 14px; }
+.legacy-import summary { cursor: pointer; padding: 6px 0; }
+.legacy-import input { margin: 8px 8px 8px 0; }
