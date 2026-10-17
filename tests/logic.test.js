@@ -75,3 +75,28 @@ test("docKey ignores key order (Postgres jsonb reorders keys)", () => {
   const two = { deleted: { z: 1 }, lists: [{ checked: { q: true, p: true }, title: "t", id: "a" }] };
   assert.equal(store.docKey(one), store.docKey(two));
 });
+
+const ocrText = require("../js/ocr-text.js");
+
+test("OCR cleanup drops headers and noise, indents sub-items, joins wrapped lines", () => {
+  const raw = [
+    "BNET CMM OS", "5:00~7:30", "22B", "", "1. 단어 3,4", "",
+    "2. 낭독 : 37회 선행 16일 금요일 밤까지", "3. 기출로 적중 해커스 중학 영문법 3학년 ：",
+    "① 본책 409p 워크북 212p 까지", "", "해설지 보고 오답", "",
+    "4. Reading : Reading Expert 유닛 14오", "답", "", "브", "", "5. TOEFL listening :"
+  ].join("\n");
+  assert.equal(ocrText.clean(raw), [
+    "1. 단어 3,4",
+    "2. 낭독: 37회 선행 16일 금요일 밤까지",
+    "3. 기출로 적중 해커스 중학 영문법 3학년:",
+    "    1) 본책 409p 워크북 212p 까지",
+    "    해설지 보고 오답",
+    "4. Reading: Reading Expert 유닛 14오",
+    "5. TOEFL listening:"
+  ].join("\n"));
+});
+
+test("OCR misreads of circled numbers still become sub-items", () => {
+  assert.equal(ocrText.clean("3. 영문법\n1 본책 409p\n1° 106,107p 수정\n(2) 해설"),
+    "3. 영문법\n    1) 본책 409p\n    1) 106,107p 수정\n    2) 해설");
+});

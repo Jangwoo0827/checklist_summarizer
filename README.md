@@ -53,14 +53,14 @@
 
 SuperDialer 앱의 내장 브라우저에서 이 사이트를 열면 앱 계정이 같은 계정이라 로그인된 채로 열립니다(앱이 이 페이지의 `localStorage`에 한 시간짜리 로그인 정보를 넣어 줍니다. 갱신용 토큰은 주지 않으므로 앱이 열 때마다 새로 넣어요).
 
-## 사진 인식 (Gemini, 무료)
+## 사진 인식
 
-로그인한 상태에서 입력 화면의 **사진에서 읽기**를 누르거나, 사진을 Ctrl+V로 붙여넣거나 끌어다 놓으면 Gemini가 할 일을 읽어서 입력칸에 채워요. Gemini 키는 브라우저가 아니라 Supabase Edge Function(`supabase/functions/read-homework`)에만 있어요.
+입력 화면의 **사진에서 읽기**를 누르거나, 사진을 Ctrl+V로 붙여넣거나 끌어다 놓으면 할 일을 읽어서 입력칸에 채워요. 브라우저 안에서 [Tesseract.js](https://github.com/naptha/tesseract.js)로 읽어서 계정이나 키가 필요 없어요.
 
-1. [Google AI Studio](https://aistudio.google.com/apikey)에서 API 키를 만들어요 (무료).
-2. Supabase 대시보드 → **Edge Functions → Secrets**에 `GEMINI_API_KEY`로 저장해요.
-3. (선택) `ALLOWED_USERS`에 쓸 수 있는 이메일을 쉼표로 적으면 그 계정만 쓸 수 있어요.
-4. (선택) `GEMINI_MODEL`로 모델을 바꿀 수 있어요. 기본은 `gemini-2.5-flash`예요.
+- 인쇄된 글자, 화면 캡처는 잘 읽고 손글씨는 약해요. 읽은 뒤 틀린 글자는 고쳐주세요.
+- 표처럼 칸이 나뉜 사진은 세로선을 찾아 칸마다 따로 읽어요.
+- 처음 한 번은 한국어 데이터(몇 MB)를 받느라 느려요.
+- `file://`로 열면 동작하지 않아요. 웹사이트나 확장 프로그램에서 써주세요.
 
 ## 구조
 
@@ -79,11 +79,12 @@ js/
   sync.js           Supabase 로그인 + 동기화
   theme.js          테마 전환
   confetti.js       완료 축하 효과
-  photo.js          사진 → 텍스트 (Edge Function 호출)
+  photo.js          사진 → 텍스트 (Tesseract, 칸 나누기)
+  ocr-text.js       읽은 글자 → 목록 형식 정리
   view-list.js / view-detail.js / view-input.js / account.js
   app.js            화면 전환, 시작
 tests/logic.test.js
-supabase/functions/read-homework/  Gemini 사진 인식 서버 함수
+vendor/tesseract/   글자 인식 엔진 (Apache-2.0)
 ```
 
 ## 테스트
