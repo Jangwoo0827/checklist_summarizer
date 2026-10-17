@@ -437,3 +437,12 @@ html.is-popup .footer-note { margin-top: 16px; }
 .legacy-import { margin: 0 0 16px; font-size: 14px; }
 .legacy-import summary { cursor: pointer; padding: 6px 0; }
 .legacy-import input { margin: 8px 8px 8px 0; }
+
+/* ---------- photo reading ---------- */
+.field-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.field-head .field-label { margin-bottom: 0; }
+.btn-small { display: inline-flex; align-items: center; gap: 6px; padding: 6px 11px; font-size: 13px; }
+.btn-small svg { width: 15px; height: 15px; }
+.btn-small:disabled { opacity: 0.6; cursor: progress; }
+#view-input.is-reading textarea { opacity: 0.55; }
+#view-input.is-dropping textarea { outline: 2px dashed var(--accent); outline-offset: 2px; }

@@ -50,9 +50,16 @@
       <input type="text" id="title-input" placeholder="예: 8/8 영어 숙제">
     </div>
     <div class="input-block">
-      <label class="field-label" for="text-input">할 일 목록</label>
+      <div class="field-head">
+        <label class="field-label" for="text-input">할 일 목록</label>
+        <button type="button" class="btn btn-small" id="btn-photo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+          <span id="photo-label">사진에서 읽기</span>
+        </button>
+        <input type="file" id="photo-input" accept="image/*" hidden>
+      </div>
       <textarea id="text-input" spellcheck="false"></textarea>
-      <p class="hint">"1. 문법" "1) 워크북" 같은 번호를 쓰면 구조를 알아서 잡아줘요. Enter를 치면 다음 번호가 자동으로 붙고, <code>Tab</code>으로 한 단계 들여쓰기, Shift+Tab으로 내어쓰기예요. 빈 번호에서 Enter를 한 번 더 치면 번호가 끝나요.</p>
+      <p class="hint">"1. 문법" "1) 워크북" 같은 번호를 쓰면 구조를 알아서 잡아줘요. Enter를 치면 다음 번호가 자동으로 붙고, <code>Tab</code>으로 한 단계 들여쓰기, Shift+Tab으로 내어쓰기예요. 숙제 사진은 Ctrl+V로 붙여넣거나 여기로 끌어다 놓아도 읽어요. 빈 번호에서 Enter를 한 번 더 치면 번호가 끝나요.</p>
     </div>
 
     <button class="btn btn-primary btn-block" id="btn-build">체크리스트 만들기</button>
@@ -137,6 +144,7 @@
 <script src="js/view-list.js"></script>
 <script src="js/view-detail.js"></script>
 <script src="js/view-input.js"></script>
+<script src="js/photo.js"></script>
 <script src="js/account.js"></script>
 <script src="js/app.js"></script>
 </body>

@@ -118,6 +118,23 @@
     }, function () { throw authExpired(); });
   }
 
+  // Calls a Supabase Edge Function as the signed-in user and returns its JSON.
+  function callFunction(name, body) {
+    if (!active()) return Promise.reject(new Error("로그인해야 쓸 수 있어요."));
+    return ensureFresh().then(function () {
+      return fetch(baseUrl + "/functions/v1/" + name, {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify(body)
+      });
+    }).then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (j) {
+        if (!res.ok) throw new Error(j.error || "서버 오류가 났어요 (" + res.status + ")");
+        return j;
+      });
+    });
+  }
+
   function signOutLocally() {
     clearTimeout(pushTimer);
     saveSession(null);
@@ -253,6 +270,7 @@
     login: login,
     logout: logout,
     syncNow: syncNow,
+    callFunction: callFunction,
     importLegacy: importLegacy,
     onStatus: function (fn) { statusListeners.push(fn); },
     onRemoteChange: function (fn) { remoteListeners.push(fn); }
