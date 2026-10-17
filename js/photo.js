@@ -40,6 +40,9 @@
           if (m.status === "recognizing text") setLabel("읽는 중 " + Math.round(m.progress * 100) + "%");
           else if (/loading/.test(m.status)) setLabel("준비 중…");
         }
+      }).then(function (worker) {
+        // PSM 4 ("one column of text") read these lists best in our tests, well ahead of the default.
+        return worker.setParameters({ tessedit_pageseg_mode: "4" }).then(function () { return worker; });
       });
       workerPromise.catch(function () { workerPromise = null; });
     }
@@ -92,27 +95,7 @@
     return ranges.length ? ranges : [[0, g.w]];
   }
 
-  // Otsu threshold: picks the black/white split that best separates text from paper.
-  function otsu(px) {
-    var hist = new Array(256).fill(0);
-    for (var i = 0; i < px.length; i++) hist[px[i]]++;
-    var sum = 0;
-    for (var t = 0; t < 256; t++) sum += t * hist[t];
-    var sumB = 0, wB = 0, best = 0, threshold = 128;
-    for (t = 0; t < 256; t++) {
-      wB += hist[t];
-      if (!wB) continue;
-      var wF = px.length - wB;
-      if (!wF) break;
-      sumB += t * hist[t];
-      var diff = sumB / wB - (sum - sumB) / wF;
-      var between = wB * wF * diff * diff;
-      if (between > best) { best = between; threshold = t; }
-    }
-    return threshold;
-  }
-
-  // Crops one column, upscales small screenshots (Tesseract reads small Korean text badly) and binarizes.
+  // Crops one column and upscales small screenshots (Tesseract reads small Korean text badly).
   function prepare(g, range) {
     var cw = range[1] - range[0];
     var scale = Math.min(MAX_SCALE, TARGET_SIDE / Math.max(cw, g.h));
@@ -136,16 +119,25 @@
     var ctx = out.getContext("2d");
     ctx.imageSmoothingQuality = "high";
     ctx.drawImage(src, 0, 0, out.width, out.height);
-    var img = ctx.getImageData(0, 0, out.width, out.height);
-    var gray = new Uint8ClampedArray(out.width * out.height);
-    for (var i = 0; i < gray.length; i++) gray[i] = img.data[i * 4];
-    var t = otsu(gray);
-    for (i = 0; i < gray.length; i++) {
-      var bw = gray[i] > t ? 255 : 0;
-      img.data[i * 4] = img.data[i * 4 + 1] = img.data[i * 4 + 2] = bw;
-    }
-    ctx.putImageData(img, 0, 0);
     return out;
+  }
+
+  // Flattens Tesseract's blocks → paragraphs → lines, keeping each line's position and first word.
+  function ocrLines(data) {
+    var lines = [];
+    (data.blocks || []).forEach(function (b) {
+      b.paragraphs.forEach(function (p) {
+        p.lines.forEach(function (l) {
+          var w = l.words[0];
+          lines.push({
+            text: l.text.trim(),
+            x0: l.bbox.x0, x1: l.bbox.x1, h: l.bbox.y1 - l.bbox.y0,
+            first: w ? { text: w.text, x0: w.bbox.x0, x1: w.bbox.x1 } : null
+          });
+        });
+      });
+    });
+    return lines;
   }
 
   function insertText(text) {
@@ -174,7 +166,10 @@
       var texts = [];
       return ranges.reduce(function (chain, range) {
         return chain.then(function () {
-          return worker.recognize(prepare(g, range)).then(function (r) { texts.push(CN.ocrText.clean(r.data.text)); });
+          var canvas = prepare(g, range);
+          return worker.recognize(canvas, {}, { blocks: true }).then(function (r) {
+            texts.push(CN.ocrText.clean(ocrLines(r.data), canvas.width));
+          });
         });
       }, Promise.resolve()).then(function () { return texts; });
     }).then(function (texts) {

@@ -100,3 +100,26 @@ test("OCR misreads of circled numbers still become sub-items", () => {
   assert.equal(ocrText.clean("3. 영문법\n1 본책 409p\n1° 106,107p 수정\n(2) 해설"),
     "3. 영문법\n    1) 본책 409p\n    1) 106,107p 수정\n    2) 해설");
 });
+
+test("OCR positions: circled numbers, page-number fixes, hanging indents and wrapped words", () => {
+  const L = (x0, x1, h, text, fw) => ({ x0, x1, h, text, first: { text: text.split(" ")[0], x0, x1: x0 + fw } });
+  const lines = [
+    L(360, 630, 45, "5:00~7:30", 270), L(442, 548, 45, "22B", 106),
+    L(28, 274, 53, "1. 단어 3,4", 36),
+    L(25, 945, 49, "3. 기출로 적중 해커스 중학 영문법 3학년", 39),
+    L(25, 762, 57, "0) 본책 4096 워크북 2121 까지", 49),
+    L(87, 467, 49, "해 설지 보고 오답", 42),
+    L(23, 955, 57, "4. Reading : Reading Expert 유닛 14오", 41),
+    L(27, 72, 26, "답", 45), L(32, 64, 20, "=", 32),
+    L(25, 516, 51, "5. TOEFL listening :", 39),
+    L(25, 600, 50, "그) 106,107p 딕테이션 수정", 49)
+  ];
+  assert.equal(ocrText.clean(lines, 984), [
+    "1. 단어 3,4",
+    "3. 기출로 적중 해커스 중학 영문법 3학년",
+    "    1) 본책 409p 워크북 212p 까지 해 설지 보고 오답",
+    "4. Reading: Reading Expert 유닛 14오답",
+    "5. TOEFL listening:",
+    "    1) 106,107p 딕테이션 수정"
+  ].join("\n"));
+});
