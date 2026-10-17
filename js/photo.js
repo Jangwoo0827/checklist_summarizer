@@ -42,7 +42,10 @@
         }
       }).then(function (worker) {
         // PSM 4 ("one column of text") read these lists best in our tests, well ahead of the default.
-        return worker.setParameters({ tessedit_pageseg_mode: "4" }).then(function () { return worker; });
+        // debug_file silences Tesseract's chatter ("Estimating resolution as …"), which Chrome
+        // otherwise lists as warnings on the extension's error page.
+        return worker.setParameters({ tessedit_pageseg_mode: "4", debug_file: "/dev/null" })
+          .then(function () { return worker; });
       });
       workerPromise.catch(function () { workerPromise = null; });
     }
