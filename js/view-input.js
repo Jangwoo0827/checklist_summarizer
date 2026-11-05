@@ -10,9 +10,21 @@
   var elText = doc.getElementById("text-input");
   var elBuild = doc.getElementById("btn-build");
 
+  var elFillHint = doc.getElementById("fill-hint");
+  var BLANK = "___";
+
   var editingListId = null;
+  var fillMode = false; // filling in a template: Tab moves between its blanks
+  var fillLine = -1;    // line of the blank the user is currently filling
+
+  function setFillMode(on) {
+    fillMode = on;
+    fillLine = -1;
+    elFillHint.hidden = !on;
+  }
 
   function openNew() {
+    setFillMode(false);
     editingListId = null;
     elBuild.textContent = "체크리스트 만들기";
     elTitle.value = util.todayLabel();
@@ -22,6 +34,7 @@
   }
 
   function openEdit(list) {
+    setFillMode(false);
     editingListId = list.id;
     elBuild.textContent = "체크리스트 수정하기";
     elTitle.value = list.title;
@@ -29,7 +42,61 @@
     CN.app.showInput();
   }
 
+  // New list from a saved template: put its text in the editor and select the first blank.
+  function useTemplate(tpl) {
+    openNew();
+    elText.value = tpl.text;
+    if (tpl.text.indexOf(BLANK) < 0) {
+      elText.setSelectionRange(tpl.text.length, tpl.text.length);
+      return;
+    }
+    setFillMode(true);
+    elText.scrollTop = 0;
+    elText.setSelectionRange(0, 0);
+    jumpToBlank(false);
+  }
+
+  function lineIndexAt(pos) { return elText.value.slice(0, pos).split("\n").length - 1; }
+
+  // Keeps a selection inside the textarea's visible area (setSelectionRange alone doesn't scroll).
+  function reveal(pos) {
+    var lineHeight = parseFloat(root.getComputedStyle(elText).lineHeight) || 24;
+    var top = lineIndexAt(pos) * lineHeight;
+    if (top < elText.scrollTop) elText.scrollTop = top;
+    else if (top + lineHeight * 2 > elText.scrollTop + elText.clientHeight) {
+      elText.scrollTop = top + lineHeight * 2 - elText.clientHeight;
+    }
+  }
+
+  // Selects the next (or previous) "___" from the caret. Returns false when there is none that way.
+  function jumpToBlank(backwards) {
+    var value = elText.value;
+    var at = -1;
+    if (backwards) {
+      if (elText.selectionStart > 0) at = value.lastIndexOf(BLANK, elText.selectionStart - 1);
+    } else {
+      at = value.indexOf(BLANK, elText.selectionEnd);
+    }
+    if (at < 0) return false;
+    elText.focus();
+    elText.setSelectionRange(at, at + BLANK.length);
+    fillLine = lineIndexAt(at);
+    reveal(at);
+    return true;
+  }
+
+  // Tab/Shift+Tab hop between blanks only while the caret is on the blank being filled,
+  // so indenting other lines still works.
+  function handleBlankJump(e) {
+    var selected = elText.value.slice(elText.selectionStart, elText.selectionEnd) === BLANK;
+    if (!selected && lineIndexAt(elText.selectionStart) !== fillLine) return false;
+    if (!jumpToBlank(e.shiftKey)) return false;
+    e.preventDefault();
+    return true;
+  }
+
   function cancel() {
+    setFillMode(false);
     var back = editingListId || CN.app.activeId();
     editingListId = null;
     if (back && store.getList(back)) CN.app.openDetail(back);
@@ -43,6 +110,7 @@
       elText.focus();
       return;
     }
+    setFillMode(false);
     var title = elTitle.value.trim() || util.todayLabel();
     var list = editingListId && store.getList(editingListId);
     if (list) {
@@ -156,11 +224,17 @@
   elText.addEventListener("keydown", function (e) {
     if (e.isComposing || e.keyCode === 229) return; // Korean IME is still composing a syllable
     if (e.key === "Enter" && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) handleEnter(e);
-    else if (e.key === "Tab" && !e.ctrlKey && !e.metaKey && !e.altKey) handleTab(e);
+    else if (e.key === "Tab" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      if (fillMode && handleBlankJump(e)) return;
+      handleTab(e);
+    }
+  });
+  elText.addEventListener("input", function () {
+    if (fillMode && elText.value.indexOf(BLANK) < 0) setFillMode(false);
   });
 
   doc.getElementById("btn-cancel-new").addEventListener("click", cancel);
   elBuild.addEventListener("click", build);
 
-  CN.input = { openNew: openNew, openEdit: openEdit };
+  CN.input = { openNew: openNew, openEdit: openEdit, useTemplate: useTemplate };
 })(window);

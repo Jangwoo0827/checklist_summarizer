@@ -123,3 +123,18 @@ test("OCR positions: circled numbers, page-number fixes, hanging indents and wra
     "    1) 106,107p 딕테이션 수정"
   ].join("\n"));
 });
+
+test("templates merge like lists: newest wins, tombstones win over older copies", () => {
+  const merged = store.mergeDocs(
+    { lists: [], templates: [{ id: "t1", name: "old", updatedAt: 1, createdAt: 1 }, { id: "t2", name: "gone", updatedAt: 2, createdAt: 2 }], deleted: {} },
+    { lists: [], templates: [{ id: "t1", name: "new", updatedAt: 5, createdAt: 1 }], deleted: { t2: 9 } }
+  );
+  assert.deepEqual(merged.templates.map((t) => [t.id, t.name]), [["t1", "new"]]);
+});
+
+test("a document from before templates existed merges and compares cleanly", () => {
+  const old = { lists: [{ id: "a", updatedAt: 1, createdAt: 1 }], deleted: {} };
+  const merged = store.mergeDocs(old, { lists: [], templates: [{ id: "t", name: "n", updatedAt: 1, createdAt: 1 }], deleted: {} });
+  assert.equal(merged.templates.length, 1);
+  assert.equal(store.docKey(old), store.docKey({ lists: old.lists, templates: [], deleted: {} }));
+});

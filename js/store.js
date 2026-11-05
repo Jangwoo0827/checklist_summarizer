@@ -5,6 +5,7 @@
 
   var LISTS_KEY = "checklist_note_lists_v1";
   var DELETED_KEY = "checklist_note_deleted_v1";
+  var TEMPLATES_KEY = "checklist_note_templates_v1";
 
   var changeListeners = [];
 
@@ -24,18 +25,20 @@
         deleted[id] = Math.max(deleted[id] || 0, tomb[id]);
       });
     });
-    var byId = {};
-    [a.lists || [], b.lists || []].forEach(function (lists) {
-      lists.forEach(function (list) {
-        var cur = byId[list.id];
-        if (!cur || (list.updatedAt || 0) > (cur.updatedAt || 0)) byId[list.id] = list;
+    function mergeItems(x, y) {
+      var byId = {};
+      [x || [], y || []].forEach(function (items) {
+        items.forEach(function (item) {
+          var cur = byId[item.id];
+          if (!cur || (item.updatedAt || 0) > (cur.updatedAt || 0)) byId[item.id] = item;
+        });
       });
-    });
-    var lists = Object.keys(byId)
-      .map(function (id) { return byId[id]; })
-      .filter(function (list) { return !(deleted[list.id] && deleted[list.id] >= (list.updatedAt || 0)); })
-      .sort(function (x, y) { return (x.createdAt || 0) - (y.createdAt || 0); });
-    return { lists: lists, deleted: deleted };
+      return Object.keys(byId)
+        .map(function (id) { return byId[id]; })
+        .filter(function (item) { return !(deleted[item.id] && deleted[item.id] >= (item.updatedAt || 0)); })
+        .sort(function (p, q) { return (p.createdAt || 0) - (q.createdAt || 0); });
+    }
+    return { lists: mergeItems(a.lists, b.lists), templates: mergeItems(a.templates, b.templates), deleted: deleted };
   }
 
   // Postgres jsonb reorders object keys, so compare documents by a key-sorted serialization.
@@ -50,17 +53,22 @@
   }
 
   function docKey(doc) {
-    var lists = (doc.lists || []).slice().sort(function (x, y) { return x.id < y.id ? -1 : x.id > y.id ? 1 : 0; });
-    return stableStringify({ lists: lists, deleted: doc.deleted || {} });
+    function byId(items) {
+      return (items || []).slice().sort(function (x, y) { return x.id < y.id ? -1 : x.id > y.id ? 1 : 0; });
+    }
+    return stableStringify({ lists: byId(doc.lists), templates: byId(doc.templates), deleted: doc.deleted || {} });
   }
 
   var store = {
     lists: [],
+    templates: [],
     deleted: {},
 
     load: function () {
       var lists = util.readJSON(LISTS_KEY, []);
       store.lists = Array.isArray(lists) ? lists.map(normalizeList) : [];
+      var templates = util.readJSON(TEMPLATES_KEY, []);
+      store.templates = Array.isArray(templates) ? templates : [];
       store.deleted = util.readJSON(DELETED_KEY, {}) || {};
     },
 
@@ -96,19 +104,52 @@
       store.commit(list);
     },
 
+    // Templates are saved list skeletons ({id, name, text}); "___" marks a blank to fill in.
+    getTemplate: function (id) {
+      for (var i = 0; i < store.templates.length; i++) if (store.templates[i].id === id) return store.templates[i];
+      return null;
+    },
+
+    // Saving under an existing name updates that template instead of adding a duplicate.
+    saveTemplate: function (name, text) {
+      var now = Date.now();
+      var same = store.templates.filter(function (t) { return t.name === name; })[0];
+      var tpl = same || { id: util.uid(), name: name, createdAt: now };
+      tpl.text = text;
+      tpl.updatedAt = now;
+      if (!same) store.templates.push(tpl);
+      store.commit(null);
+      return tpl;
+    },
+
+    removeTemplate: function (id) {
+      store.deleted[id] = Date.now();
+      store.templates = store.templates.filter(function (t) { return t.id !== id; });
+      store.commit(null);
+    },
+
+    restoreTemplate: function (tpl) {
+      delete store.deleted[tpl.id];
+      if (!store.getTemplate(tpl.id)) store.templates.push(tpl);
+      tpl.updatedAt = Date.now(); // outranks the tombstone even if another device already got it
+      store.commit(null);
+    },
+
     snapshot: function () {
-      return { lists: store.lists, deleted: store.deleted };
+      return { lists: store.lists, templates: store.templates, deleted: store.deleted };
     },
 
     // Replace everything with a merged document without triggering another sync.
     applyDoc: function (doc) {
       store.lists = (doc.lists || []).map(normalizeList);
+      store.templates = doc.templates || [];
       store.deleted = doc.deleted || {};
       writeLocal();
     },
 
     clear: function () {
       store.lists = [];
+      store.templates = [];
       store.deleted = {};
       writeLocal();
     },
@@ -121,6 +162,7 @@
 
   function writeLocal() {
     util.writeJSON(LISTS_KEY, store.lists);
+    util.writeJSON(TEMPLATES_KEY, store.templates);
     util.writeJSON(DELETED_KEY, store.deleted);
   }
 

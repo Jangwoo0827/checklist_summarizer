@@ -15,6 +15,8 @@
   var elDoneToggle = doc.getElementById("done-toggle");
   var elDoneCount = doc.getElementById("done-count");
   var elDoneList = doc.getElementById("done-list");
+  var elTplSection = doc.getElementById("tpl-section");
+  var elTplList = doc.getElementById("tpl-list");
 
   var doneOpen = util.readString(DONE_OPEN_KEY) === "1";
 
@@ -43,6 +45,38 @@
     elDoneList.hidden = !doneOpen;
     elDoneList.innerHTML = "";
     done.forEach(function (e) { elDoneList.appendChild(renderCard(e.list, e.progress)); });
+    renderTemplates();
+  }
+
+  function renderTemplates() {
+    elTplSection.hidden = store.templates.length === 0;
+    elTplList.innerHTML = "";
+    store.templates.forEach(function (tpl) {
+      var chip = doc.createElement("span");
+      chip.className = "tpl-chip";
+      var use = doc.createElement("button");
+      use.type = "button";
+      use.className = "tpl-use";
+      use.textContent = tpl.name;
+      use.title = "이 템플릿으로 새 체크리스트 만들기";
+      use.addEventListener("click", function () { CN.input.useTemplate(tpl); });
+      var del = doc.createElement("button");
+      del.type = "button";
+      del.className = "tpl-del";
+      del.textContent = "×";
+      del.setAttribute("aria-label", tpl.name + " 템플릿 삭제");
+      del.addEventListener("click", function () {
+        store.removeTemplate(tpl.id);
+        render();
+        util.toast("'" + tpl.name + "' 템플릿을 지웠어요", {
+          action: "되돌리기",
+          onAction: function () { store.restoreTemplate(tpl); render(); }
+        });
+      });
+      chip.appendChild(use);
+      chip.appendChild(del);
+      elTplList.appendChild(chip);
+    });
   }
 
   function renderCard(list, p) {
