@@ -4,10 +4,18 @@
 
   // The one place the app version lives. manifest.json must carry the same number (a test checks it).
   // To release: bump VERSION here and in manifest.json, add an entry at the top of PATCH_NOTES.
-  var VERSION = "1.11.0";
+  var VERSION = "1.11.1";
 
   // Newest first. Shown in 설정 > 패치노트.
   var PATCH_NOTES = [
+    {
+      version: "1.11.1", date: "2026-11-13",
+      items: [
+        "실시간 막대에 연결 상태가 보여요. \"페이지와 연결됐어요 (화면 N개)\"가 뜨면 선택이 곧바로 채워지고, 3초 안에 신호가 없으면 안내가 떠요.",
+        "페이지의 선택 신호를 두 가지 길로 보내요(메시지와 저장소). 한쪽이 막힌 브라우저에서도 전달돼요.",
+        "화면 맨 아래에 지금 쓰는 버전이 보여요. 새로고침이 됐는지 바로 확인할 수 있어요."
+      ]
+    },
     {
       version: "1.11.0", date: "2026-11-13",
       items: [

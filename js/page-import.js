@@ -165,13 +165,18 @@
   function init() {
     if (!available()) return;
     importPending();
-    // The page reports its selection as it changes (see live.js).
-    chromeApi.runtime.onMessage.addListener(function (message) {
-      if (message && message.type === "cn-selection" && CN.live) CN.live.onSelection(message.text);
-    });
+    // The page reports its selection as it changes (see live.js), by runtime message and by storage.
+    function route(report) {
+      if (!report || !CN.live) return;
+      if (report.type === "cn-selection") CN.live.onSelection(report.text);
+      else if (report.type === "cn-watch-ready") CN.live.onReady(report.frames);
+    }
+    chromeApi.runtime.onMessage.addListener(route);
     // The panel stays open while the user picks on the page, so take the result the moment it is saved.
     chromeApi.storage.onChanged.addListener(function (changes, area) {
-      if (area === "local" && changes[PENDING_KEY] && changes[PENDING_KEY].newValue) importPending();
+      if (area !== "local") return;
+      if (changes[PENDING_KEY] && changes[PENDING_KEY].newValue) importPending();
+      if (changes.cnSelection && changes.cnSelection.newValue) route(changes.cnSelection.newValue);
     });
   }
 

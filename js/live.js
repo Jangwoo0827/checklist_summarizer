@@ -11,9 +11,11 @@
   var elBar = doc.getElementById("live-bar");
   var elTitle = doc.getElementById("live-title");
   var elStatus = doc.getElementById("live-status");
+  var elLink = doc.getElementById("live-link");
   var elText = doc.getElementById("text-input");
 
-  var state = null;     // { tabId, templateId } while live
+  var CONNECT_WAIT_MS = 3000;
+  var state = null;     // { tabId, templateId, ready, timer } while live
 
   function status(result, list) {
     if (!result) {
@@ -50,17 +52,37 @@
   }
 
   function stop() {
+    if (state) clearTimeout(state.timer);
     state = null;
     elBar.hidden = true;
+  }
+
+  // The page's watcher says it is listening: the connection works.
+  function onReady(frames) {
+    if (!state) return;
+    state.ready = true;
+    clearTimeout(state.timer);
+    elLink.className = "live-link is-ok";
+    elLink.textContent = "페이지와 연결됐어요 (화면 " + (frames || 1) + "개를 보고 있어요)";
+  }
+
+  // No word from the page: say so, instead of leaving the editor silently empty.
+  function noSignal() {
+    if (!state || state.ready) return;
+    elLink.className = "live-link is-warn";
+    elLink.textContent = "페이지에서 신호가 안 와요. 확장 프로그램을 새로고침(↻)한 뒤 다시 해보거나, 아래 \"클릭해서 고르기\"를 써보세요.";
   }
 
   // Opens a fresh editor and starts following the page. `initial` is a selection that was already there.
   function start(tab, tpl, initial) {
     CN.input.openNew();                          // also ends any earlier live session
-    state = { tabId: tab.id, templateId: tpl ? tpl.id : "" };
+    state = { tabId: tab.id, templateId: tpl ? tpl.id : "", ready: false, timer: 0 };
+    elLink.className = "live-link";
+    elLink.textContent = "페이지와 연결하는 중…";
     showBar();
     return CN.pageImport.startLive(tab.id, tpl && tpl.id).then(function (running) {
       if (!running) { stop(); return; }
+      if (state) state.timer = setTimeout(noSignal, CONNECT_WAIT_MS);
       if (initial) onSelection(initial);
       else util.toast("페이지에서 글을 드래그해서 선택하세요");
     });
@@ -93,5 +115,5 @@
     util.toast("실시간 채우기를 멈췄어요. 지금 내용은 그대로 고칠 수 있어요");
   });
 
-  CN.live = { start: start, stop: stop, onSelection: onSelection, active: function () { return !!state; } };
+  CN.live = { start: start, stop: stop, onSelection: onSelection, onReady: onReady, active: function () { return !!state; } };
 })(window);

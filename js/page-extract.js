@@ -41,7 +41,10 @@
   // Reports the page's selection to the extension the moment it changes, so the app can show it live.
   // Runs in the isolated content-script world (so chrome.runtime works). It listens for "selectionchange"
   // in this document and in every frame of the same site inside it (also when such a frame loads a new
-  // page), and sends { type: "cn-selection", text } - the innermost selection, like pageSelection. A frame
+  // page), and reports { type: "cn-selection", text } - the innermost selection, like pageSelection. It
+  // also reports { type: "cn-watch-ready", frames } once it is listening, so the app can show that the
+  // connection works. Every report goes out two ways (a runtime message and chrome.storage.local), because
+  // either path can be unavailable in some browsers; the app takes whichever arrives. A frame
   // of the same site is already covered by the top page, so only the top page and frames of another site
   // report; that keeps two reporters from disagreeing about the same selection.
   CN.pageWatch = function pageWatch() {
@@ -85,11 +88,19 @@
 
     var timer = 0;
     var last = null;
+    var bound = 0;
+    function post(report) {
+      try { chrome.runtime.sendMessage(report); } catch (e) {}
+      try {
+        // `at` makes every report a change, so the app hears even a repeated one
+        chrome.storage.local.set({ cnSelection: { type: report.type, text: report.text || "", frames: report.frames || 0, at: Date.now() } });
+      } catch (e) {}
+    }
     function send() {
       var text = best().text;
       if (!text.trim() || text === last) return;      // a cleared selection keeps what was there
       last = text;
-      try { chrome.runtime.sendMessage({ type: "cn-selection", text: text }); } catch (e) {}
+      post({ type: "cn-selection", text: text });
     }
     function schedule() {
       clearTimeout(timer);
@@ -100,6 +111,7 @@
       try { d = w.document; void d.documentElement; } catch (e) { return; }
       if (w.__cnBound) return;
       w.__cnBound = true;
+      bound++;
       d.addEventListener("selectionchange", schedule);
       Array.prototype.forEach.call(d.querySelectorAll("iframe, frame"), function (frame) {
         try { bind(frame.contentWindow); } catch (e) {}
@@ -110,7 +122,8 @@
       });
     }
     bind(window);
-    window.__cnWatch = { resend: function () { last = null; send(); } };
+    window.__cnWatch = { resend: function () { last = null; send(); post({ type: "cn-watch-ready", frames: bound }); } };
+    post({ type: "cn-watch-ready", frames: bound });
     return { reporting: true, already: false };
   };
 

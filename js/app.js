@@ -66,6 +66,7 @@
       if (!doc.documentElement.classList.contains("is-panel")) root.close();
     });
   }
+  doc.getElementById("version-note").textContent = "체크리스트 노트 v" + CN.VERSION;
   showList();
   CN.sync.init();
 })(window);
