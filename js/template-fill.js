@@ -2,19 +2,16 @@
   "use strict";
   var CN = root.CN = root.CN || {};
 
-  // Pours text taken from elsewhere (a web page, a photo, the editor) into a template.
+  // Pours text taken from elsewhere (a web page, a photo, the editor) into a template, in order.
   //
   // A template is a list with blanks ("___"):    1. 단어 ___
   //                                              2. 낭독: ___회 선행
-  // Rules, in this order:
-  //   1. Same name: a template line with a blank whose name ("단어", "낭독") starts an incoming item is
-  //      replaced by that item, children included. The template decides the order.
-  //   2. A slot that needs more lines grows: further incoming items with the same name go right below
-  //      the slot (same level), so they never fall outside the format.
-  //   3. Leftover blanks are filled, one each, by leftover plain values (lines without a number). Plain
-  //      values beyond the last blank become sub-items of the last line that was filled this way.
-  //   4. Anything still unused is added at the end.
-  // Numbered groups are renumbered afterwards so inserted lines fit in.
+  // The incoming items fill the blanks one by one, from the top: the first item goes into the first
+  // blank, the second into the second, and so on. An item that has sub-items brings them along, right
+  // under the line it filled. Nothing is matched by name or reordered.
+  //   * Fewer items than blanks: the blanks that are left stay as they are.
+  //   * More items than blanks: the rest is added at the end.
+  // Numbered groups are renumbered afterwards, so lines added at the end continue the numbering.
   //
   // explain() returns the result together with what happened to every line, for the preview;
   // apply() returns just the text.
@@ -34,9 +31,6 @@
     });
   }
 
-  // Comparing names ignores spaces, colons and dots: "낭독 :" == "낭독:" == "낭독".
-  function key(text) { return text.replace(/[\s:：.\-]+/g, "").toLowerCase(); }
-
   function childCount(items, i) {
     var n = 0;
     while (i + 1 + n < items.length && items[i + 1 + n].level > items[i].level) n++;
@@ -54,9 +48,7 @@
     var tpl = parseItems(templateText);
     var inc = parseItems(incomingText);
     if (!tpl.length) return fromItems(inc, "inserted", "");
-    if (!inc.length) {
-      return fromItems(tpl, null, "");
-    }
+    if (!inc.length) return fromItems(tpl, null, "");
 
     var used = inc.map(function () { return false; });
     var rows = tpl.map(function (t) {
@@ -64,124 +56,60 @@
       return {
         level: t.level, text: join(t.marker, t.body),
         kind: blank ? "blank" : "kept",
-        note: blank ? "가져온 글에서 못 찾아서 비어 있어요" : ""
+        note: blank ? "채울 항목이 모자라서 비어 있어요" : ""
       };
     });
-    var attached = tpl.map(function () { return []; });   // children of whatever filled a template line
-    var groups = tpl.map(function () { return []; });     // lines inserted after a template line's whole block
-    var tail = [];
+    var attached = tpl.map(function () { return []; });   // sub-items of whatever filled a template line
 
-    function takeBlock(j) {
-      var count = childCount(inc, j);
-      for (var k = j; k <= j + count; k++) used[k] = true;
-      return inc.slice(j, j + 1 + count);
-    }
-    function nameOf(ti) {
-      var at = tpl[ti].body.indexOf(BLANK);
-      return at < 0 ? "" : tpl[ti].body.slice(0, at).replace(/[\s:：.\-]+$/, "").trim();
-    }
-    function adopt(ti, block, kind, note) {
-      var base = block[0].level;
-      block.slice(1).forEach(function (child) {
-        attached[ti].push({
-          level: Math.max(tpl[ti].level + 1, tpl[ti].level + child.level - base),
-          text: join(child.marker, child.body), kind: kind, note: note
-        });
-      });
-    }
-    function blockRows(block, level, marker, kind, note) {
-      var base = block[0].level;
-      return block.map(function (item, i) {
-        var head = i === 0;
-        return {
-          level: head ? level : Math.max(level + 1, level + item.level - base),
-          text: head && marker !== null ? join(marker, item.body) : join(item.marker, item.body),
-          kind: kind, note: head ? note : ""
-        };
-      });
-    }
-
-    // 1. same name
-    var matched = {};            // template line index -> name key, for lines filled by name
-    tpl.forEach(function (t, ti) {
-      var name = key(nameOf(ti));
-      if (!name) return;
+    // the next item that has not been used: it, and the sub-items that belong to it
+    function nextBlock() {
       for (var j = 0; j < inc.length; j++) {
-        if (used[j] || key(inc[j].body).indexOf(name) !== 0) continue;
-        var block = takeBlock(j);
-        rows[ti].text = join(t.marker, block[0].body);
-        rows[ti].kind = "filled";
-        rows[ti].note = "\"" + nameOf(ti) + "\" 칸에 채웠어요";
-        adopt(ti, block, "filled", "");
-        matched[ti] = name;
-        return;
+        if (used[j]) continue;
+        var count = childCount(inc, j);
+        for (var k = j; k <= j + count; k++) used[k] = true;
+        return inc.slice(j, j + 1 + count);
       }
-    });
-
-    // 2. the slot needs more lines: same-name items go right below it
-    for (var j = 0; j < inc.length; j++) {
-      if (used[j]) continue;
-      var host = -1;
-      Object.keys(matched).forEach(function (ti) {
-        if (key(inc[j].body).indexOf(matched[ti]) === 0) host = Number(ti);   // the last matching slot
-      });
-      if (host < 0) continue;
-      groups[host] = groups[host].concat(blockRows(takeBlock(j), tpl[host].level, siblingMarker(tpl[host].marker), "inserted",
-        "\"" + nameOf(host) + "\" 칸에 한 줄 더 필요해서 바로 아래에 넣었어요"));
+      return null;
     }
 
-    // 3. leftover plain values fill leftover blanks, one each
-    function nextPlain() {
-      for (var k = 0; k < inc.length; k++) if (!used[k] && !inc[k].marker) return k;
-      return -1;
-    }
-    var lastPlain = -1;
+    // 1. blanks, top to bottom, left to right
     tpl.forEach(function (t, ti) {
       while (rows[ti].text.indexOf(BLANK) >= 0) {
-        var k = nextPlain();
-        if (k < 0) return;
-        var block = takeBlock(k);
+        var block = nextBlock();
+        if (!block) return;
         rows[ti].text = rows[ti].text.replace(BLANK, block[0].body);
         rows[ti].kind = "filled";
         rows[ti].note = "빈칸에 순서대로 채웠어요";
-        adopt(ti, block, "filled", "");
-        lastPlain = ti;
-      }
-    });
-    // plain values beyond the last blank: sub-items of the last line filled that way
-    if (lastPlain >= 0) {
-      for (var p = nextPlain(); p >= 0; p = nextPlain()) {
-        var extra = takeBlock(p);
-        extra.forEach(function (item, i) {
-          attached[lastPlain].push({
-            level: tpl[lastPlain].level + 1 + (i === 0 ? 0 : Math.max(0, item.level - extra[0].level)),
-            text: join(item.marker, item.body), kind: "inserted",
-            note: i === 0 ? "값이 더 있어서 바로 위 줄의 하위 항목으로 넣었어요" : ""
+        block.slice(1).forEach(function (child) {
+          attached[ti].push({
+            level: Math.max(t.level + 1, t.level + child.level - block[0].level),
+            text: join(child.marker, child.body), kind: "filled", note: ""
           });
         });
       }
-    }
-
-    // 4. whatever is left goes at the end
-    for (var q = 0; q < inc.length; q++) {
-      if (used[q]) continue;
-      tail = tail.concat(blockRows(takeBlock(q), inc[q].level, null, "inserted", "맞는 칸이 없어서 맨 아래에 붙였어요"));
-    }
-
-    // compose: a template line, what filled it, and what was inserted after its block
-    var endsAt = {};
-    tpl.forEach(function (t, ti) {
-      var end = ti + childCount(tpl, ti);
-      (endsAt[end] = endsAt[end] || []).push(ti);
     });
+
+    // 2. whatever is left goes at the end, continuing the numbering of the template's top level
+    var lastTop = null;
+    tpl.forEach(function (t) { if (t.level === 0 && t.marker) lastTop = t; });
+    var tail = [];
+    for (var q = nextBlock(); q; q = nextBlock()) {
+      q.forEach(function (item, i) {
+        var head = i === 0;
+        tail.push({
+          level: head ? item.level : item.level,
+          // a top-level item takes the template's own numbering style, so the numbers line up
+          text: head && item.level === 0 && lastTop ? join(siblingMarker(lastTop.marker), item.body) : join(item.marker, item.body),
+          kind: "inserted",
+          note: head ? "빈칸보다 항목이 많아서 맨 아래에 붙였어요" : ""
+        });
+      });
+    }
+
     var out = [];
     rows.forEach(function (row, ti) {
       out.push(row);
       attached[ti].forEach(function (r) { out.push(r); });
-      // blocks ending here, innermost (deepest) first
-      (endsAt[ti] || []).slice().sort(function (a, b) { return tpl[b].level - tpl[a].level; }).forEach(function (host) {
-        groups[host].forEach(function (r) { out.push(r); });
-      });
     });
     tail.forEach(function (r) { out.push(r); });
 
@@ -217,7 +145,7 @@
       return {
         level: it.level, text: join(it.marker, it.body),
         kind: kind || (blank ? "blank" : "kept"),
-        note: note || (!kind && blank ? "가져온 글에서 못 찾아서 비어 있어요" : "")
+        note: note || (!kind && blank ? "채울 항목이 없어서 비어 있어요" : "")
       };
     });
     return { text: lines.map(function (r) { return new Array(r.level + 1).join(INDENT) + r.text; }).join("\n"), lines: lines };

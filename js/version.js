@@ -4,10 +4,18 @@
 
   // The one place the app version lives. manifest.json must carry the same number (a test checks it).
   // To release: bump VERSION here and in manifest.json, add an entry at the top of PATCH_NOTES.
-  var VERSION = "1.9.2";
+  var VERSION = "1.10.0";
 
   // Newest first. Shown in 설정 > 패치노트.
   var PATCH_NOTES = [
+    {
+      version: "1.10.0", date: "2026-11-13",
+      items: [
+        "템플릿 채우기가 단순해졌어요. 가져온 항목이 위에서부터 순서대로 템플릿의 빈칸(___)에 하나씩 들어가요. 이름을 맞춰 찾거나 줄을 늘리는 규칙은 없앴어요.",
+        "항목이 빈칸보다 적으면 남은 빈칸은 그대로 두고, 많으면 맨 아래에 이어서 붙여요. 하위 항목은 그 항목과 함께 들어가요.",
+        "템플릿 없이 가져오면 항목을 순서대로 나열해서 넣어요. 미리보기에서 어느 줄이 어떻게 됐는지 그대로 볼 수 있어요."
+      ]
+    },
     {
       version: "1.9.2", date: "2026-11-13",
       items: [
