@@ -14,6 +14,76 @@
     }
   };
 
+  // Lifts copy protection so the text can be selected with the mouse again, like the "Allow Copy"
+  // extensions do. Runs in the page's own JavaScript world (chrome.scripting world "MAIN"), because
+  // handlers the page assigned (document.oncopy = ...) are invisible to an isolated content script.
+  //   * forces user-select: text on everything,
+  //   * clears onselectstart / oncopy / oncontextmenu / ... handlers (properties and attributes),
+  //   * stops copy / cut / selectstart / contextmenu / dragstart events before the page's own handlers see them,
+  //   * switches off empty, transparent layers laid over the text (the page's "shield").
+  CN.pageUnlock = function pageUnlock() {
+    if (window.__cnUnlocked) return { already: true };
+    window.__cnUnlocked = true;
+
+    var style = document.createElement("style");
+    style.textContent = "*, *::before, *::after { -webkit-user-select: text !important; user-select: text !important; " +
+      "-webkit-touch-callout: default !important; }";
+    (document.head || document.documentElement).appendChild(style);
+
+    var HANDLERS = ["onselectstart", "oncopy", "oncut", "onpaste", "oncontextmenu", "ondragstart", "onselect", "ondrag"];
+    function clear(target) {
+      HANDLERS.forEach(function (name) {
+        try { target[name] = null; } catch (e) {}
+        if (target.removeAttribute) target.removeAttribute(name);
+      });
+    }
+    [window, document, document.documentElement, document.body].forEach(function (t) { if (t) clear(t); });
+    Array.prototype.forEach.call(document.querySelectorAll("[" + HANDLERS.join("],[") + "]"), clear);
+
+    // Our listeners run first (capture phase on window) and keep the page's handlers from seeing these.
+    ["copy", "cut", "selectstart", "contextmenu", "dragstart", "select"].forEach(function (type) {
+      window.addEventListener(type, function (e) { e.stopImmediatePropagation(); }, true);
+    });
+
+    // Shields: elements with no text of their own that sit on top of text. Probe a grid of points.
+    function hasText(el) { return (el.innerText || el.textContent || "").trim().length > 0; }
+    var shields = 0;
+    var COLS = 8, ROWS = 10;
+    for (var pass = 0; pass < 3; pass++) {            // a page can stack several layers
+      var found = false;
+      for (var r = 0; r < ROWS; r++) {
+        for (var c = 0; c < COLS; c++) {
+          var x = (c + 0.5) * window.innerWidth / COLS;
+          var y = (r + 0.5) * window.innerHeight / ROWS;
+          var stack = document.elementsFromPoint(x, y);
+          for (var i = 0; i < stack.length; i++) {
+            var el = stack[i];
+            if (el === document.documentElement || el === document.body) break;
+            if (hasText(el)) break;                    // reached real content: nothing above it to remove
+            if (el.tagName === "IMG" || el.tagName === "CANVAS" || el.tagName === "VIDEO" || el.tagName === "SVG" ||
+                el.tagName === "svg" || el.tagName === "IFRAME" || el.tagName === "INPUT" || el.tagName === "TEXTAREA") continue;
+            var below = stack.slice(i + 1).some(function (other) { return other !== document.documentElement && other !== document.body && hasText(other); });
+            if (!below) continue;                      // an empty box with no text under it is harmless
+            el.style.setProperty("pointer-events", "none", "important");
+            shields++;
+            found = true;
+            break;
+          }
+        }
+      }
+      if (!found) break;
+    }
+
+    var note = document.createElement("div");
+    note.textContent = "선택·복사 방지를 풀었어요. 가져올 글을 드래그해서 선택한 뒤, 확장 프로그램 아이콘을 눌러 \"페이지\"를 고르세요.";
+    note.setAttribute("style", "all:initial;position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:2147483647;" +
+      "max-width:min(560px,calc(100vw - 24px));box-sizing:border-box;padding:12px 18px;border-radius:12px;background:#23261f;" +
+      "color:#ede9df;font:600 14px/1.5 sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.4);pointer-events:none");
+    document.documentElement.appendChild(note);
+    setTimeout(function () { if (note.parentNode) note.parentNode.removeChild(note); }, 7000);
+    return { already: false, shields: shields };
+  };
+
   // Click-to-pick mode. The page gets a small bar on top; hovering outlines the block under the
   // pointer, a click picks it (click again to unpick, several can be picked), Enter or the bar's
   // button finishes, Esc cancels. The picked text is saved to chrome.storage.local for the popup to

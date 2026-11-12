@@ -236,5 +236,8 @@
   doc.getElementById("btn-cancel-new").addEventListener("click", cancel);
   elBuild.addEventListener("click", build);
 
-  CN.input = { openNew: openNew, openEdit: openEdit, openNewWithList: openNewWithList, replaceText: replaceText, useTemplate: useTemplate };
+  CN.input = {
+    openNew: openNew, openEdit: openEdit, openNewWithList: openNewWithList, replaceText: replaceText,
+    getText: function () { return elText.value; }, useTemplate: useTemplate
+  };
 })(window);

@@ -33,7 +33,6 @@
   // Re-render whatever is on screen after data changed underneath (e.g. from another device).
   function refresh() {
     CN.settings.refresh();
-    CN.pageImport.refresh();
     CN.viewList.render();
     if (current === "detail") {
       if (store.getList(activeId)) CN.viewDetail.render();
@@ -55,7 +54,7 @@
   CN.pageImport.init();
   CN.account.init();
   CN.sync.onRemoteChange(refresh);
-  doc.getElementById("btn-new").addEventListener("click", CN.input.openNew);
+  doc.getElementById("btn-new").addEventListener("click", CN.newFlow.open);
   doc.getElementById("btn-back").addEventListener("click", showList);
   // In the extension popup, offer to open the same page full-size in a tab.
   var expand = doc.getElementById("btn-expand");

@@ -4,10 +4,19 @@
 
   // The one place the app version lives. manifest.json must carry the same number (a test checks it).
   // To release: bump VERSION here and in manifest.json, add an entry at the top of PATCH_NOTES.
-  var VERSION = "1.7.0";
+  var VERSION = "1.8.0";
 
   // Newest first. Shown in 설정 > 패치노트.
   var PATCH_NOTES = [
+    {
+      version: "1.8.0", date: "2026-11-13",
+      items: [
+        "\"+ 새 체크리스트 만들기\"가 카드로 바뀌었어요. 기본 / 페이지 중에 고르고, 이어서 템플릿을 골라요. 가져오기 버튼과 선택 상자는 없어졌어요.",
+        "템플릿에 채우기 전에 미리보기가 떠요. 어느 줄이 채워졌는지, 비어 있는지, 끼워 넣었는지를 색과 설명으로 보여줘요. 적용하거나 템플릿 없이 그대로 넣을 수 있어요.",
+        "템플릿 줄이 모자라도 틀 밖으로 밀려나지 않아요. 같은 이름의 항목이 더 있으면 그 칸 바로 아래에 줄을 늘려 넣고, 값이 더 많으면 하위 항목으로 넣어요. 번호도 다시 매겨요.",
+        "복사·선택이 막힌 페이지에서 \"드래그로 선택해서 가져오기\"가 생겼어요. 선택·복사 방지를 풀고 글 위를 덮은 투명한 막을 치워서, 평소처럼 드래그로 선택할 수 있어요."
+      ]
+    },
     {
       version: "1.7.0", date: "2026-11-13",
       items: [
