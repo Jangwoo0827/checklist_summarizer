@@ -86,8 +86,12 @@
 
   // Click-to-pick mode. The page gets a small bar on top; hovering outlines the block under the
   // pointer, a click picks it (click again to unpick, several can be picked), Enter or the bar's
-  // button finishes, Esc cancels. The picked text is saved to chrome.storage.local for the popup to
-  // import the next time it opens (clicking the page closes the popup, so it can't be handed over directly).
+  // button finishes, Esc cancels. The picked text is saved to chrome.storage.local for the app to import.
+  //
+  // A transparent layer covers the page and receives every mouse event, so links never fire and the
+  // page's own handlers stay out of it. What is under the pointer is looked up by coordinates, looking
+  // through frames of the same site (many school and academy sites keep their content in nested
+  // iframes) and through empty protective layers.
   CN.pagePick = function pagePick() {
     if (window.__cnPicking) return;
     window.__cnPicking = true;
@@ -99,7 +103,9 @@
     var climbed = [];      // what ArrowUp passed through, so ArrowDown can go back
     var saved = [];        // [element, outline, outlineOffset] to restore on exit
 
-    // ---- the bar ----
+    // ---- the layer and the bar ----
+    var layer = document.createElement("div");
+    layer.setAttribute("style", "all:initial;position:fixed;inset:0;z-index:2147483646;cursor:pointer;background:transparent");
     var ui = document.createElement("div");
     ui.setAttribute("style", "all:initial;position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:2147483647;" +
       "display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;background:#23261f;color:#ede9df;" +
@@ -124,6 +130,7 @@
     ui.appendChild(hint);
     ui.appendChild(done);
     ui.appendChild(cancel);
+    document.documentElement.appendChild(layer);
     document.documentElement.appendChild(ui);
 
     function refreshLabel(message) {
@@ -132,6 +139,43 @@
         : "가져올 글을 클릭하세요");
     }
     refreshLabel();
+
+    // ---- finding what is under the pointer ----
+    function hasText(el) { return (el.innerText || el.textContent || "").trim().length > 0; }
+
+    // The topmost element with text at (x, y) of `doc`, going into frames we can read. Empty elements
+    // (transparent shields, images) are skipped; the page background itself is not a target.
+    function deepAt(doc, x, y) {
+      var stack = doc.elementsFromPoint ? doc.elementsFromPoint(x, y) : [doc.elementFromPoint(x, y)];
+      for (var i = 0; i < stack.length; i++) {
+        var el = stack[i];
+        if (!el || el === doc.documentElement || el === doc.body) continue;
+        if (el.tagName === "IFRAME" || el.tagName === "FRAME") {
+          var inner = null;
+          try { inner = el.contentDocument; } catch (e) {}
+          if (inner) {
+            var r = el.getBoundingClientRect();
+            var found = deepAt(inner, x - r.left - el.clientLeft, y - r.top - el.clientTop);
+            if (found) return found;
+          }
+          continue;
+        }
+        if (hasText(el)) return el;
+      }
+      return null;
+    }
+    function probe(x, y) {
+      layer.style.pointerEvents = "none";
+      ui.style.pointerEvents = "none";
+      try { return deepAt(document, x, y); }
+      finally { layer.style.pointerEvents = ""; ui.style.pointerEvents = ""; }
+    }
+    function blockOf(el) {
+      while (el && el.ownerDocument && el !== el.ownerDocument.body && el !== el.ownerDocument.documentElement && INLINE.test(el.tagName)) {
+        el = el.parentElement;
+      }
+      return el && el.ownerDocument && el !== el.ownerDocument.documentElement ? el : null;
+    }
 
     // ---- highlighting ----
     function outline(el, css) {
@@ -155,36 +199,17 @@
       if (old && old !== el) paint(old);
       if (el) paint(el);
     }
-    // Copy-protected pages often lay an empty, transparent layer over their text. When the element under
-    // the pointer holds no text, look at what is stacked beneath it.
-    function hasText(el) { return (el.innerText || el.textContent || "").trim().length > 0; }
-    function targetAt(e) {
-      var el = e.target;
-      if (el && el.nodeType === 1 && !hasText(el) && document.elementsFromPoint) {
-        var stack = document.elementsFromPoint(e.clientX, e.clientY);
-        for (var i = 0; i < stack.length; i++) {
-          if (!ui.contains(stack[i]) && hasText(stack[i])) { el = stack[i]; break; }
-        }
-      }
-      return blockOf(el);
-    }
-    function blockOf(el) {
-      while (el && el !== document.body && el !== document.documentElement && INLINE.test(el.tagName)) el = el.parentElement;
-      return el === document.documentElement ? null : el;
-    }
 
-    // ---- events (capture phase, so the page's own handlers and links don't fire) ----
-    function onMove(e) {
-      if (ui.contains(e.target)) return;
+    // ---- events: the layer gets them all ----
+    layer.addEventListener("mousemove", function (e) {
       climbed = [];
-      setHover(targetAt(e));
-    }
-    function onClick(e) {
-      if (ui.contains(e.target)) return;
+      setHover(blockOf(probe(e.clientX, e.clientY)));
+    });
+    layer.addEventListener("click", function (e) {
       e.preventDefault();
       e.stopPropagation();
+      var under = blockOf(probe(e.clientX, e.clientY));
       // The hovered block (which ArrowUp may have widened), unless the click landed somewhere else.
-      var under = targetAt(e);
       var el = hover && under && hover.contains(under) ? hover : under;
       if (!el) return;
       var at = picked.indexOf(el);
@@ -192,14 +217,39 @@
       else picked.push(el);
       paint(el);
       refreshLabel();
-    }
-    function swallow(e) {
-      if (!ui.contains(e.target)) { e.preventDefault(); e.stopPropagation(); }
-    }
+    });
+    ["mousedown", "mouseup", "dblclick", "contextmenu"].forEach(function (type) {
+      layer.addEventListener(type, function (e) { e.preventDefault(); e.stopPropagation(); });
+    });
+    // The layer would otherwise stop the page (and its frames) from scrolling, so scroll what is under it.
+    layer.addEventListener("wheel", function (e) {
+      e.preventDefault();
+      var dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+      var el = probe(e.clientX, e.clientY);
+      while (el) {
+        var doc = el.ownerDocument;
+        var view = doc.defaultView;
+        for (var n = el; n && n.nodeType === 1 && n !== doc.body && n !== doc.documentElement; n = n.parentElement) {
+          var overflow = view.getComputedStyle(n).overflowY;
+          if ((overflow === "auto" || overflow === "scroll") && n.scrollHeight > n.clientHeight) {
+            var before = n.scrollTop;
+            n.scrollTop += dy;
+            if (n.scrollTop !== before) return;
+          }
+        }
+        var scroller = doc.scrollingElement;
+        if (scroller) {
+          var was = scroller.scrollTop;
+          scroller.scrollTop += dy;
+          if (scroller.scrollTop !== was) return;
+        }
+        el = view.frameElement;      // nothing to scroll here: try the document this frame sits in
+      }
+    }, { passive: false });
     function onKey(e) {
       if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); exit(); }
       else if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); finish(); }
-      else if (e.key === "ArrowUp" && hover && hover.parentElement && hover.parentElement !== document.body) {
+      else if (e.key === "ArrowUp" && hover && hover.parentElement && hover.parentElement !== hover.ownerDocument.body) {
         e.preventDefault();
         climbed.push(hover);
         setHover(hover.parentElement);
@@ -208,20 +258,12 @@
         setHover(climbed.pop());
       }
     }
-    document.addEventListener("mousemove", onMove, true);
-    document.addEventListener("click", onClick, true);
-    document.addEventListener("mousedown", swallow, true);
-    document.addEventListener("mouseup", swallow, true);
     document.addEventListener("keydown", onKey, true);
 
     function exit() {
-      document.removeEventListener("mousemove", onMove, true);
-      document.removeEventListener("click", onClick, true);
-      document.removeEventListener("mousedown", swallow, true);
-      document.removeEventListener("mouseup", swallow, true);
       document.removeEventListener("keydown", onKey, true);
       saved.slice().forEach(function (s) { restore(s[0]); });
-      if (ui.parentNode) ui.parentNode.removeChild(ui);
+      [layer, ui].forEach(function (el) { if (el.parentNode) el.parentNode.removeChild(el); });
       window.__cnPicking = false;
     }
 
@@ -237,16 +279,20 @@
 
     function finish() {
       if (!picked.length) { refreshLabel("먼저 가져올 글을 클릭하세요"); return; }
-      // In page order, and never both a block and something inside it.
-      var els = picked.slice().sort(function (a, b) { return a.compareDocumentPosition(b) & 4 ? -1 : 1; });
+      // In page order within a document (picks in different frames keep the order they were made in),
+      // and never both a block and something inside it.
+      var els = picked.slice().sort(function (a, b) {
+        if (a.ownerDocument !== b.ownerDocument) return 0;
+        return a.compareDocumentPosition(b) & 4 ? -1 : 1;
+      });
       els = els.filter(function (el) { return !els.some(function (o) { return o !== el && o.contains(el); }); });
-      var text = els.map(function (el) { return (el.innerText || el.textContent || "").replace(/ /g, " ").trim(); })
+      var text = els.map(function (el) { return (el.innerText || el.textContent || "").replace(/\u00a0/g, " ").trim(); })
         .filter(Boolean).join("\n");
       exit();
       if (!text) { notice("선택한 곳에 글이 없어요"); return; }
-      var ok = "가져왔어요! 확장 프로그램 아이콘을 누르면 체크리스트 입력 화면에 채워져 있어요.";
+      var ok = "가져왔어요! 체크리스트 노트 창에 채워져 있어요.";
       try {
-        chrome.storage.local.set({ cnPending: { text: text, url: location.href, at: Date.now() } }, function () { notice(ok); });
+        chrome.storage.local.set({ cnPending: { text: text, url: location.origin + location.pathname, at: Date.now() } }, function () { notice(ok); });
       } catch (err) {
         // No storage access: fall back to the clipboard so the text isn't lost.
         try { navigator.clipboard.writeText(text); notice("복사했어요. 체크리스트 입력 칸에 붙여넣으세요."); } catch (e2) { notice("글을 저장하지 못했어요."); }

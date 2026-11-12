@@ -581,3 +581,8 @@ html.is-popup .field-actions { flex-wrap: wrap; justify-content: flex-end; }
 .pv-tag.pv-blank { color: var(--warn); background: var(--warn-soft); }
 .pv-tag.pv-inserted { color: var(--accent); border: 1px dashed var(--accent); }
 .pv-tag.pv-kept { color: var(--ink-muted); border-color: var(--rule); }
+
+/* ---------- side panel ---------- */
+html.is-panel body { width: auto; min-height: 100vh; }
+html.is-panel .page { max-width: none; }
+html.is-panel .chip { max-width: 150px; }

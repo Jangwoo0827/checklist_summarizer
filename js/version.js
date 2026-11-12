@@ -4,10 +4,19 @@
 
   // The one place the app version lives. manifest.json must carry the same number (a test checks it).
   // To release: bump VERSION here and in manifest.json, add an entry at the top of PATCH_NOTES.
-  var VERSION = "1.8.0";
+  var VERSION = "1.9.0";
 
   // Newest first. Shown in 설정 > 패치노트.
   var PATCH_NOTES = [
+    {
+      version: "1.9.0", date: "2026-11-13",
+      items: [
+        "확장 프로그램이 팝업 대신 브라우저 오른쪽의 사이드 패널로 열려요. 페이지를 눌러도 닫히지 않아요. 사이드 패널을 지원하지 않는 브라우저에서는 오른쪽에 붙는 작은 창으로 열려요.",
+        "페이지에서 가져올 때 아이콘을 다시 누를 필요가 없어요. 클릭해서 고르거나 영역을 잡으면 패널에 바로 채워져요.",
+        "학원 사이트처럼 글이 프레임 안의 프레임에 들어 있어도 가져와요. 클릭해서 고르기가 프레임 안쪽 글을 찾고, 드래그로 선택한 글도 모든 프레임에서 읽어요.",
+        "처음 한 번, 웹페이지를 읽을 수 있게 브라우저에서 허용해야 해요. 이후에는 페이지를 옮겨 다녀도 다시 묻지 않아요."
+      ]
+    },
     {
       version: "1.8.0", date: "2026-11-13",
       items: [

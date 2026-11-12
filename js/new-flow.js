@@ -97,6 +97,7 @@
       return;
     }
     CN.pageImport.prepare().then(function (ctx) {
+      if (ctx.needsAccess) { showAccess(source, tpl, goBack); return; }
       if (ctx.error) { dialog.close(); util.toast(ctx.error); return; }
       if (ctx.selection) {
         dialog.close();
@@ -107,17 +108,54 @@
     });
   }
 
+  // First use: the browser asks once for permission to read web pages.
+  function showAccess(source, tpl, goBack) {
+    screen("웹페이지를 읽으려면 허용이 필요해요",
+      "브라우저가 \"모든 사이트의 데이터 읽기\" 허용을 한 번 물어봐요. 허용하면 어떤 웹페이지에서든 글을 가져올 수 있고, 페이지를 옮겨 다녀도 다시 묻지 않아요. 평소에는 아무것도 읽지 않고, 가져오기를 누를 때만 지금 보는 페이지를 읽어요.",
+      [card("허용하고 계속", "브라우저의 허용 창이 떠요", function () {
+        // Called straight from the click: the browser only shows its prompt for a user gesture.
+        CN.pageImport.requestAccess().then(function (granted) {
+          if (granted) proceed(source, tpl, goBack);
+          else util.toast("허용하지 않으면 페이지에서 글을 가져올 수 없어요");
+        });
+      })], goBack);
+  }
+
   function showModes(tab, tpl, goBack) {
-    var id = tpl && tpl.id;
-    screen("선택해 둔 글이 없어요. 어떻게 가져올까요?", "고르면 팝업이 닫히고 페이지에서 이어서 해요.", [
+    screen("선택해 둔 글이 없어요. 어떻게 가져올까요?", "고르면 페이지에서 이어서 해요. 이 창은 그대로 열려 있어요.", [
       card("드래그로 선택해서 가져오기",
-        "선택·복사 방지를 풀어 드려요. 글을 드래그해서 고른 다음, 확장 아이콘을 눌러 \"페이지\"를 다시 고르세요.",
-        function () { CN.pageImport.start(tab.id, "unlock", id); }),
+        "선택·복사 방지를 풀어 드려요. 페이지에서 글을 드래그로 고른 다음, 여기서 \"선택한 글 가져오기\"를 눌러요.",
+        function () { runMode(tab, tpl, goBack, "unlock"); }),
       card("클릭해서 고르기", "글 덩어리를 클릭해서 골라요. 여러 곳도 고를 수 있어요.",
-        function () { CN.pageImport.start(tab.id, "pick", id); }),
+        function () { runMode(tab, tpl, goBack, "pick"); }),
       card("영역 드래그해서 글자 읽기", "글이 이미지로 되어 있을 때 써요. 화면의 영역을 사진처럼 읽어요.",
-        function () { CN.pageImport.start(tab.id, "region", id); })
+        function () { runMode(tab, tpl, goBack, "region"); })
     ], goBack);
+  }
+
+  function runMode(tab, tpl, goBack, mode) {
+    CN.pageImport.start(tab.id, mode, tpl && tpl.id).then(function (running) {
+      if (!running) return;
+      if (mode === "unlock") { showUnlocked(tab, tpl, goBack); return; }
+      // Click-to-pick and region hand their result over by themselves; the panel imports it when it arrives.
+      dialog.close();
+      util.toast(mode === "pick" ? "페이지에서 가져올 글을 클릭해서 고르세요" : "페이지에서 가져올 영역을 드래그하세요");
+    });
+  }
+
+  // The page is unlocked: the user selects text there, then tells us here.
+  function showUnlocked(tab, tpl, goBack) {
+    screen("글을 드래그해서 선택하세요",
+      "복사 방지를 풀었어요. 페이지에서 가져올 글을 드래그로 선택한 뒤, 아래 버튼을 눌러요. 이 창은 열어 둔 채로 페이지를 쓰면 돼요.",
+      [card("선택한 글 가져오기", "지금 페이지에서 선택된 글을 읽어요", function () {
+        CN.pageImport.prepare().then(function (ctx) {
+          if (ctx.needsAccess || ctx.error) { util.toast(ctx.error || "허용이 필요해요"); return; }
+          if (!ctx.selection) { util.toast("선택한 글이 없어요. 페이지에서 글을 드래그로 선택해 주세요"); return; }
+          dialog.close();
+          deliver(CN.pageText.toList(ctx.selection, CN.settings.styleFor), tpl && tpl.id);
+        });
+      })],
+      function () { showModes(tab, tpl, goBack); });
   }
 
   // ---------- delivering text into the editor ----------
@@ -247,5 +285,8 @@
   });
   dialog.addEventListener("click", function (e) { if (e.target === dialog) dialog.close(); });
 
-  CN.newFlow = { open: open, deliver: deliver, fillEditor: fillEditor };
+  CN.newFlow = {
+    open: open, deliver: deliver, fillEditor: fillEditor,
+    close: function () { if (dialog.open) dialog.close(); }
+  };
 })(window);

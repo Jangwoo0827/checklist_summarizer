@@ -17,7 +17,8 @@
   var busy = false;
   var workerPromise = null;
 
-  function isPopup() { return doc.documentElement.classList.contains("is-popup"); }
+  // A real popup closes when the file picker opens; a side panel does not.
+  function isPopup() { return doc.documentElement.classList.contains("is-popup") && !doc.documentElement.classList.contains("is-panel"); }
 
   function setLabel(text) { elLabel.textContent = text; }
 
