@@ -1,6 +1,6 @@
 # 체크리스트 노트 (Checklist Note)
 
-현재 버전 **v1.5.0** · 웹사이트와 크롬 확장 프로그램이 같은 버전을 써요. 바뀐 내용은 앱의 설정 > 패치노트에서 볼 수 있어요.
+현재 버전 **v1.5.1** · 웹사이트와 크롬 확장 프로그램이 같은 버전을 써요. 바뀐 내용은 앱의 설정 > 패치노트에서 볼 수 있어요.
 
 숙제나 할 일 목록을 텍스트로 붙여넣으면 바로 체크리스트로 만들어주는 웹 앱입니다. 빌드 도구 없이 브라우저에서 `index.html`을 열면 동작합니다.
 
@@ -78,6 +78,7 @@ checklist-note.html 예전 주소 → index.html로 이동
 css/style.css
 js/
   version.js        버전과 패치노트
+tools/stamp.js        캐시 방지용 ?v= 값 붙이기
   boot.js           테마 적용, 팝업 모드 표시
   config.js         동기화 서버 설정
   util.js           공통 도구 (id, 날짜, localStorage, 알림)
@@ -105,8 +106,9 @@ vendor/tesseract/   글자 인식 엔진 (Apache-2.0)
 1. `js/version.js`의 `VERSION`과 `PATCH_NOTES` 맨 위에 새 항목을 적어요.
 2. `manifest.json`의 `version`을 같은 숫자로 바꿔요. (크롬은 `1.5.0`처럼 숫자와 점만 받아요)
 3. 이 README의 `현재 버전`도 같이 바꿔요.
-4. `node --test tests/*.test.js`가 세 곳이 어긋나면 알려줘요.
-5. 커밋 후 `git tag v1.5.0`처럼 태그를 달아 올려요.
+4. **`node tools/stamp.js`를 실행해요.** index.html의 js/css 주소에 파일 내용에 따른 `?v=` 값을 붙여서, GitHub Pages가 옛 파일을 캐시에서 꺼내 쓰지 못하게 해요. (js/css를 고칠 때마다 필요해요)
+5. `node --test tests/*.test.js`가 버전이 어긋나거나 stamp를 빼먹으면 알려줘요.
+6. 커밋 후 `git tag v1.5.1`처럼 태그를 달아 올려요.
 
 ## 테스트
 

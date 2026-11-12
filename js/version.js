@@ -4,10 +4,17 @@
 
   // The one place the app version lives. manifest.json must carry the same number (a test checks it).
   // To release: bump VERSION here and in manifest.json, add an entry at the top of PATCH_NOTES.
-  var VERSION = "1.5.0";
+  var VERSION = "1.5.1";
 
   // Newest first. Shown in 설정 > 패치노트.
   var PATCH_NOTES = [
+    {
+      version: "1.5.1", date: "2026-11-12",
+      items: [
+        "새 버전이 올라온 직후 설정의 패치노트가 비어 보이거나 모양이 깨지던 문제를 고쳤어요.",
+        "파일이 바뀌면 주소도 바뀌게 해서, 브라우저가 옛 파일과 새 파일을 섞어 쓰지 않아요."
+      ]
+    },
     {
       version: "1.5.0", date: "2026-11-12",
       items: [
