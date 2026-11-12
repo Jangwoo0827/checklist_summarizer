@@ -56,13 +56,14 @@
   CN.sync.onRemoteChange(refresh);
   doc.getElementById("btn-new").addEventListener("click", CN.newFlow.open);
   doc.getElementById("btn-back").addEventListener("click", showList);
-  // In the extension popup, offer to open the same page full-size in a tab.
+  // In the extension's side panel (or popup), offer to open the same app full-size in a tab.
   var expand = doc.getElementById("btn-expand");
-  if (doc.documentElement.classList.contains("is-popup") && !doc.documentElement.classList.contains("is-panel") && root.chrome && root.chrome.tabs) {
+  if (doc.documentElement.classList.contains("is-popup") && root.chrome && root.chrome.tabs) {
     expand.hidden = false;
     expand.addEventListener("click", function () {
       root.chrome.tabs.create({ url: root.chrome.runtime.getURL("index.html") });
-      root.close();
+      // A popup closes itself; the side panel stays open next to the new tab.
+      if (!doc.documentElement.classList.contains("is-panel")) root.close();
     });
   }
   showList();

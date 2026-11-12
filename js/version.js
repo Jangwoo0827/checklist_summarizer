@@ -4,10 +4,16 @@
 
   // The one place the app version lives. manifest.json must carry the same number (a test checks it).
   // To release: bump VERSION here and in manifest.json, add an entry at the top of PATCH_NOTES.
-  var VERSION = "1.9.0";
+  var VERSION = "1.9.1";
 
   // Newest first. Shown in 설정 > 패치노트.
   var PATCH_NOTES = [
+    {
+      version: "1.9.1", date: "2026-11-13",
+      items: [
+        "사이드 패널 오른쪽 위의 ↗ 버튼으로 앱을 큰 화면 탭으로도 열 수 있어요. 패널은 그대로 열려 있어요."
+      ]
+    },
     {
       version: "1.9.0", date: "2026-11-13",
       items: [
