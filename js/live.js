@@ -12,43 +12,81 @@
   var elTitle = doc.getElementById("live-title");
   var elStatus = doc.getElementById("live-status");
   var elLink = doc.getElementById("live-link");
+  var elNext = doc.getElementById("live-next");
   var elText = doc.getElementById("text-input");
 
   var CONNECT_WAIT_MS = 3000;
-  var state = null;     // { tabId, templateId, ready, timer } while live
+  var state = null;     // { tabId, templateId, ready, timer, blocks, current } while live
+
+  function template() { return state && state.templateId ? store.getTemplate(state.templateId) : null; }
 
   function status(result, list) {
-    if (!result) {
-      var n = list ? list.split("\n").filter(function (l) { return l.trim(); }).length : 0;
-      return n ? n + "줄" : "아직 선택한 글이 없어요";
-    }
+    if (!list) return "아직 선택한 글이 없어요";
+    if (!result) return list.split("\n").filter(function (l) { return l.trim(); }).length + "줄";
     var counts = { filled: 0, blank: 0, inserted: 0 };
     result.lines.forEach(function (l) { if (counts[l.kind] !== undefined) counts[l.kind]++; });
     var parts = [];
     if (counts.filled) parts.push(counts.filled + "줄 채움");
     if (counts.inserted) parts.push(counts.inserted + "줄 끝에 붙임");
     if (counts.blank) parts.push(counts.blank + "줄 비어 있음");
-    return parts.length ? parts.join(" · ") : "아직 선택한 글이 없어요";
+    return parts.join(" · ");
+  }
+
+  // Where the next selection will go.
+  function nextHint(result) {
+    var tpl = template();
+    if (!tpl) return "다음에 고른 글은 아래에 이어서 붙어요";
+    var blank = result && result.lines.filter(function (l) { return l.kind === "blank"; })[0];
+    if (blank) return "다음에 고른 글은 \"" + blank.text + "\" 칸에 들어가요";
+    return "빈칸을 다 채웠어요. 더 고르면 맨 아래에 붙어요";
+  }
+
+  // The editor shows every finished item plus the one being selected now.
+  function render() {
+    var tpl = template();
+    var parts = state.blocks.concat(state.current ? [state.current] : []);
+    var list = parts.map(function (b) { return CN.pageText.toList(b, CN.settings.styleFor); })
+      .filter(function (l) { return l.trim(); }).join("\n");
+    var result = tpl ? CN.templateFill.explain(tpl.text, list) : null;
+    if (!list) CN.input.setLiveText(tpl ? tpl.text : "");
+    else CN.input.setLiveText(result ? result.text : CN.templateFill.tidy(list));
+    elStatus.textContent = status(result, list);
+    elNext.textContent = nextHint(result || (tpl ? CN.templateFill.explain(tpl.text, "") : null));
   }
 
   function showBar() {
-    var tpl = state.templateId ? store.getTemplate(state.templateId) : null;
+    var tpl = template();
     elTitle.textContent = tpl
       ? "\"" + tpl.name + "\" 템플릿에 실시간으로 채우는 중"
       : "페이지에서 글을 드래그하면 여기에 바로 나타나요";
-    elStatus.textContent = status(null, "");
     elBar.hidden = false;
+    render();
   }
 
-  // The page's selection changed (or was there from the start).
+  // The page's selection changed (or was there from the start). A new selection somewhere else becomes the
+  // next item; growing the same selection updates the current one.
   function onSelection(text) {
     if (!state) return;
-    var list = CN.pageText.toList(text, CN.settings.styleFor);
-    if (!list.trim()) return;
-    var tpl = state.templateId ? store.getTemplate(state.templateId) : null;
-    var result = tpl ? CN.templateFill.explain(tpl.text, list) : null;
-    CN.input.setLiveText(result ? result.text : list);
-    elStatus.textContent = status(result, list);
+    var next = CN.pageText.accumulate(state, text);
+    state.blocks = next.blocks;
+    state.current = next.current;
+    render();
+  }
+
+  function undo() {
+    if (!state) return;
+    if (state.current) state.current = "";
+    else state.blocks.pop();
+    render();
+    util.toast("마지막 항목을 지웠어요");
+  }
+
+  function reset() {
+    if (!state) return;
+    state.blocks = [];
+    state.current = "";
+    render();
+    util.toast("처음부터 다시 고르세요");
   }
 
   function stop() {
@@ -76,7 +114,7 @@
   // Opens a fresh editor and starts following the page. `initial` is a selection that was already there.
   function start(tab, tpl, initial) {
     CN.input.openNew();                          // also ends any earlier live session
-    state = { tabId: tab.id, templateId: tpl ? tpl.id : "", ready: false, timer: 0 };
+    state = { tabId: tab.id, templateId: tpl ? tpl.id : "", ready: false, timer: 0, blocks: [], current: "" };
     elLink.className = "live-link";
     elLink.textContent = "페이지와 연결하는 중…";
     showBar();
@@ -110,6 +148,8 @@
   }
   doc.getElementById("live-pick").addEventListener("click", other("pick"));
   doc.getElementById("live-region").addEventListener("click", other("region"));
+  doc.getElementById("live-undo").addEventListener("click", undo);
+  doc.getElementById("live-reset").addEventListener("click", reset);
   doc.getElementById("live-stop").addEventListener("click", function () {
     stop();
     util.toast("실시간 채우기를 멈췄어요. 지금 내용은 그대로 고칠 수 있어요");

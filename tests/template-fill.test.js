@@ -96,3 +96,15 @@ test("explain() marks sub-items as part of their parent and keeps levels", () =>
   assert.equal(r.text, fill.apply(t, i));
   assert.deepEqual(r.lines.map((l) => [l.level, l.kind]), [[0, "filled"], [0, "filled"], [1, "filled"]]);
 });
+
+test("tidy() makes a plain list's numbering sequential when several selections each brought their own", () => {
+  assert.equal(fill.tidy("1. 단어\n1. 낭독\n1. 기출"), "1. 단어\n2. 낭독\n3. 기출");
+  assert.equal(fill.tidy("1. A\n    1) b1\n1. B\n    1) b2\n    1) b3"), "1. A\n    1) b1\n2. B\n    1) b2\n    2) b3");
+  assert.equal(fill.tidy("3,4\n37회"), "3,4\n37회");                 // unnumbered lines stay as they are
+});
+
+test("tidy() renumbers the numbered lines even when unnumbered lines are mixed in", () => {
+  assert.equal(fill.tidy("1. 단어\n1. 낭독\n3,4 쪽"), "1. 단어\n2. 낭독\n3,4 쪽");
+  assert.equal(fill.tidy("1. 단어\n3,4 쪽\n1. 낭독"), "1. 단어\n3,4 쪽\n2. 낭독");
+  assert.equal(fill.tidy("1. A\n1) b"), "1. A\n1) b");           // a different style is left alone
+});

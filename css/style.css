@@ -598,3 +598,4 @@ html.is-panel .chip { max-width: 150px; }
 .live-link.is-ok { color: var(--accent); }
 .live-link.is-warn { color: var(--warn); font-weight: 600; }
 .version-note { margin: 4px 0 0; text-align: center; font-size: 11px; color: var(--ink-muted); }
+.live-next { margin: -2px 0 8px; font-size: 13px; font-weight: 600; line-height: 1.5; }

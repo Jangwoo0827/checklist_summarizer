@@ -121,8 +121,14 @@
     };
   }
 
-  // Renumbers every group of siblings whose lines are all numbered the same way.
-  function renumberGroups(rows) {
+  function isNumbered(text) {
+    var p = markersApi().parseLine(text);
+    return !!(p.marker && p.styleId && markersApi().style(p.styleId).numbered);
+  }
+
+  // Renumbers every group of siblings whose lines are all numbered the same way. With `lenient`, lines
+  // without a number are skipped over and only the numbered ones are renumbered among themselves.
+  function renumberGroups(rows, lenient) {
     var top = [];
     var groups = [top];          // each group is a list of sibling rows
     var open = [];               // ancestors of the current row, with their children lists
@@ -134,8 +140,9 @@
       open.push(entry);
     });
     groups.forEach(function (group) {
-      var next = markersApi().renumber(group.map(function (r) { return r.text; }));
-      if (next) group.forEach(function (r, i) { r.text = next[i]; });
+      var members = group.filter(function (r) { return !lenient || isNumbered(r.text); });
+      var next = markersApi().renumber(members.map(function (r) { return r.text; }));
+      if (next) members.forEach(function (r, i) { r.text = next[i]; });
     });
   }
 
@@ -153,6 +160,13 @@
 
   function apply(templateText, incomingText) { return explain(templateText, incomingText).text; }
 
-  CN.templateFill = { apply: apply, explain: explain };
+  // A plain list whose numbering is made sequential (several selections each brought their own "1.").
+  function tidy(text) {
+    var rows = parseItems(text).map(function (it) { return { level: it.level, text: join(it.marker, it.body) }; });
+    renumberGroups(rows, true);
+    return rows.map(function (r) { return new Array(r.level + 1).join(INDENT) + r.text; }).join("\n");
+  }
+
+  CN.templateFill = { apply: apply, explain: explain, tidy: tidy };
   if (typeof module !== "undefined" && module.exports) module.exports = CN.templateFill;
 })(typeof window !== "undefined" ? window : globalThis);

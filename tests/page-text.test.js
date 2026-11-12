@@ -73,3 +73,49 @@ test("board titles lose their trailing comment count; numbered homework text is 
   assert.equal(pageText.toList("1. 문제집 [2]\n2. 단어"), "1. 문제집 [2]\n2. 단어");
   assert.equal(pageText.toList("[1]"), "[1]");                       // a line that is only a count stays
 });
+
+// ---- live selecting: a new selection is a new item, the same selection growing is the same item ----
+
+const start = { blocks: [], current: "" };
+const step = (state, text) => pageText.accumulate(state, text);
+
+test("the first selection becomes the current item; empty reports change nothing", () => {
+  assert.deepEqual(step(start, "3,4"), { blocks: [], current: "3,4" });
+  assert.deepEqual(step(start, "   "), start);
+  assert.deepEqual(step({ blocks: ["a"], current: "b" }, ""), { blocks: ["a"], current: "b" });
+});
+
+test("dragging to make the same selection bigger updates the current item, it does not start a new one", () => {
+  let s = step(start, "37");
+  s = step(s, "37회");
+  s = step(s, "37회 선행 16일");
+  assert.deepEqual(s, { blocks: [], current: "37회 선행 16일" });
+});
+
+test("shrinking or re-dragging the same text also updates the current item", () => {
+  let s = step(start, "37회 선행 16일");
+  s = step(s, "37회 선행");
+  assert.deepEqual(s, { blocks: [], current: "37회 선행" });
+});
+
+test("selecting something else makes the previous item final and starts the next one", () => {
+  let s = step(start, "3,4");
+  s = step(s, "37");                 // somewhere else: item 2 begins
+  s = step(s, "37회 선행");           // and grows
+  s = step(s, "영문법");              // somewhere else again: item 3
+  assert.deepEqual(s, { blocks: ["3,4", "37회 선행"], current: "영문법" });
+});
+
+test("line breaks and spacing do not make the same selection look different", () => {
+  let s = step(start, "1. 단어\n2. 낭독");
+  s = step(s, "1. 단어  2. 낭독\n");   // the browser reports the same text with other whitespace
+  assert.deepEqual(s, { blocks: [], current: "1. 단어\n2. 낭독" });
+  s = step(s, "1. 단어 2. 낭독 3. 기출"); // grows
+  assert.equal(s.blocks.length, 0);
+});
+
+test("the input state is left untouched", () => {
+  const original = { blocks: ["a"], current: "b" };
+  step(original, "c");
+  assert.deepEqual(original, { blocks: ["a"], current: "b" });
+});

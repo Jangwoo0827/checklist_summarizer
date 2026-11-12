@@ -4,10 +4,20 @@
 
   // The one place the app version lives. manifest.json must carry the same number (a test checks it).
   // To release: bump VERSION here and in manifest.json, add an entry at the top of PATCH_NOTES.
-  var VERSION = "1.11.1";
+  var VERSION = "1.12.0";
 
   // Newest first. Shown in 설정 > 패치노트.
   var PATCH_NOTES = [
+    {
+      version: "1.12.0", date: "2026-11-13",
+      items: [
+        "글을 하나 고를 때마다 다음 빈칸에 들어가요. 앞에서 채운 칸은 그대로 남아요. 전에는 새로 고르면 첫 칸 내용이 바뀌어서 하나만 채워졌어요.",
+        "같은 글을 드래그로 넓히거나 줄이는 중이면 지금 칸이 갱신되고, 다른 곳을 고르면 다음 칸으로 넘어가요.",
+        "실시간 막대에 다음에 채워질 칸이 보여요. 예: \"다음에 고른 글은 3. 기출 ___ 칸에 들어가요\".",
+        "잘못 골랐을 때 \"마지막 취소\"와 \"처음부터\" 버튼이 있어요.",
+        "템플릿을 고르면 빈 템플릿이 처음부터 화면에 보여요. 템플릿 없이 하면 고른 글이 번호를 이어서 아래로 쌓여요."
+      ]
+    },
     {
       version: "1.11.1", date: "2026-11-13",
       items: [

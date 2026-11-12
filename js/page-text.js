@@ -71,6 +71,26 @@
     }).join("\n");
   }
 
-  CN.pageText = { toList: toList };
+  // Live selecting reports the selection again and again while it is dragged. Each report is either the same
+  // selection growing or shrinking (the new text contains the old, or the old contains the new) or a new
+  // selection somewhere else, which becomes the next item. Takes and returns { blocks, current }:
+  // `blocks` are the finished items, `current` the one being selected right now.
+  function squash(s) { return String(s || "").replace(/\s+/g, " ").trim(); }
+
+  function accumulate(state, text) {
+    var blocks = state.blocks.slice();
+    var current = state.current;
+    var next = String(text || "").trim();
+    if (!squash(next)) return { blocks: blocks, current: current };
+    if (!current) return { blocks: blocks, current: next };
+    var a = squash(next);
+    var b = squash(current);
+    if (a === b) return { blocks: blocks, current: current };
+    if (a.indexOf(b) >= 0 || b.indexOf(a) >= 0) return { blocks: blocks, current: next };   // the same selection, adjusted
+    blocks.push(current);
+    return { blocks: blocks, current: next };
+  }
+
+  CN.pageText = { toList: toList, accumulate: accumulate };
   if (typeof module !== "undefined" && module.exports) module.exports = CN.pageText;
 })(typeof window !== "undefined" ? window : globalThis);
