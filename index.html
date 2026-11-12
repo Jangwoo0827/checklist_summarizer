@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>체크리스트 노트</title>
 <script src="js/boot.js?v=9c025976"></script>
-<link rel="stylesheet" href="css/style.css?v=b247b67d">
+<link rel="stylesheet" href="css/style.css?v=1b733a91">
 </head>
 <body>
 <div class="page">
@@ -33,7 +33,10 @@
   <!-- LIST VIEW -->
   <section id="view-list">
     <button class="btn btn-primary btn-block" id="btn-new" style="margin-bottom:12px;">+ 새 체크리스트 만들기</button>
-    <button class="btn btn-block" id="btn-import" style="margin-bottom:20px;" hidden title="글을 드래그해서 선택한 뒤 누르면 바로 가져오고, 선택한 게 없으면 페이지에서 직접 클릭해서 골라요">이 페이지에서 가져오기</button>
+    <button class="btn btn-block" id="btn-import" style="margin-bottom:12px;" hidden title="글을 드래그해서 선택한 뒤 누르면 바로 가져오고, 선택한 게 없으면 가져오는 방법을 골라요">이 페이지에서 가져오기</button>
+    <div class="import-template-row" id="import-template-row" hidden>
+      <select id="import-template" aria-label="가져온 글을 채울 템플릿"></select>
+    </div>
     <div class="tpl-section" id="tpl-section" hidden>
       <p class="field-label">템플릿으로 시작</p>
       <div class="tpl-list" id="tpl-list"></div>
@@ -61,6 +64,10 @@
       <div class="field-head">
         <label class="field-label" for="text-input">할 일 목록</label>
         <div class="field-actions">
+        <button type="button" class="btn btn-small" id="btn-fill-template" title="지금 적은 글을 저장해 둔 템플릿의 빈칸에 채워 넣어요">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v5H4zM4 14h7v5H4zM15 14h5v5h-5z"/></svg>
+          <span>템플릿에 합치기</span>
+        </button>
         <button type="button" class="btn btn-small" id="btn-save-template">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg>
           <span>템플릿 저장</span>
@@ -143,6 +150,31 @@
   </div>
 </dialog>
 
+<dialog class="dialog" id="fill-dialog" aria-labelledby="fill-title">
+  <h2 class="dialog-title" id="fill-title">어느 템플릿에 채울까요?</h2>
+  <p class="dialog-text">이름이 같은 항목(예: <code>단어</code>)은 틀의 빈칸 자리에 들어가고, 남는 값은 순서대로 빈칸을 채워요. 어디에도 안 맞는 항목은 맨 아래에 붙어요.</p>
+  <div class="fill-list" id="fill-template-list"></div>
+  <div class="dialog-actions">
+    <button class="btn" type="button" data-close-dialog>닫기</button>
+  </div>
+</dialog>
+
+<dialog class="dialog" id="import-dialog" aria-labelledby="import-title">
+  <h2 class="dialog-title" id="import-title">어떻게 가져올까요?</h2>
+  <p class="dialog-text">선택해 둔 글이 없어요. 팝업이 닫히고 페이지에서 이어서 해요.</p>
+  <button type="button" class="fill-choice" id="import-pick">
+    <strong>클릭해서 고르기</strong>
+    <span>페이지의 글을 클릭해서 골라요. 선택·복사가 막힌 페이지도 대부분 돼요.</span>
+  </button>
+  <button type="button" class="fill-choice" id="import-region">
+    <strong>영역 드래그해서 글자 읽기</strong>
+    <span>글이 이미지로 되어 있거나 위 방법이 안 될 때 써요. 화면의 영역을 사진처럼 읽어요.</span>
+  </button>
+  <div class="dialog-actions">
+    <button class="btn" type="button" data-close-dialog>닫기</button>
+  </div>
+</dialog>
+
 <dialog class="dialog" id="template-dialog" aria-labelledby="template-title">
   <h2 class="dialog-title" id="template-title">템플릿으로 저장</h2>
   <p class="dialog-text">지금 적은 할 일 목록을 틀로 저장해 두고, 다음에 "템플릿으로 시작"에서 불러와 채워 넣을 수 있어요. 비워 둘 곳은 <code>___</code>(밑줄 3개)로 적어주세요. 예: <code>1. 단어 ___</code></p>
@@ -202,7 +234,7 @@
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
 <script src="js/config.js?v=7a0c2fef"></script>
-<script src="js/version.js?v=84c20791"></script>
+<script src="js/version.js?v=43690abf"></script>
 <script src="js/util.js?v=636b9a37"></script>
 <script src="js/parser.js?v=a111a394"></script>
 <script src="js/markers.js?v=a9713288"></script>
@@ -214,15 +246,16 @@
 <script src="js/dragsort.js?v=265a18cf"></script>
 <script src="js/view-list.js?v=ef3973a3"></script>
 <script src="js/view-detail.js?v=2e94fd7f"></script>
-<script src="js/view-input.js?v=9c98f05d"></script>
+<script src="js/view-input.js?v=eb168031"></script>
 <script src="vendor/tesseract/tesseract.min.js?v=99bac222"></script>
 <script src="js/ocr-text.js?v=15b0b650"></script>
-<script src="js/photo.js?v=a0c3abf2"></script>
+<script src="js/photo.js?v=3d3946a0"></script>
+<script src="js/template-fill.js?v=d93a9fe7"></script>
 <script src="js/page-text.js?v=63a82f47"></script>
-<script src="js/page-extract.js?v=3d58fffe"></script>
-<script src="js/page-import.js?v=97b49d1f"></script>
-<script src="js/templates.js?v=6e39341d"></script>
+<script src="js/page-extract.js?v=54ebc1e2"></script>
+<script src="js/page-import.js?v=093c6e63"></script>
+<script src="js/templates.js?v=bacab211"></script>
 <script src="js/account.js?v=31522bca"></script>
-<script src="js/app.js?v=f5c2d8db"></script>
+<script src="js/app.js?v=27342704"></script>
 </body>
 </html>

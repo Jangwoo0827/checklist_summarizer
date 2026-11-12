@@ -33,12 +33,25 @@
     elText.focus();
   }
 
-  // New list whose text comes from outside (e.g. picked on a web page), converted to the list format.
-  function openNewWith(raw) {
-    openNew();
-    elText.value = CN.pageText.toList(raw, CN.settings.styleFor);
-    elText.setSelectionRange(0, 0);
+  // Puts list text in the editor. When it still has blanks ("___", e.g. from a template), the editor
+  // switches to fill mode and selects the first one.
+  function replaceText(text) {
+    elText.value = text;
     elText.scrollTop = 0;
+    if (text.indexOf(BLANK) < 0) {
+      setFillMode(false);
+      elText.setSelectionRange(0, 0);
+      return;
+    }
+    setFillMode(true);
+    elText.setSelectionRange(0, 0);
+    jumpToBlank(false);
+  }
+
+  // New list whose text comes from outside (a web page, a region read with OCR), already in list format.
+  function openNewWithList(text) {
+    openNew();
+    replaceText(text);
   }
 
   function openEdit(list) {
@@ -223,5 +236,5 @@
   doc.getElementById("btn-cancel-new").addEventListener("click", cancel);
   elBuild.addEventListener("click", build);
 
-  CN.input = { openNew: openNew, openEdit: openEdit, openNewWith: openNewWith, useTemplate: useTemplate };
+  CN.input = { openNew: openNew, openEdit: openEdit, openNewWithList: openNewWithList, replaceText: replaceText, useTemplate: useTemplate };
 })(window);

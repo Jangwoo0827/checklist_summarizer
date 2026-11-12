@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>복사 방지 페이지 (테스트용)</title>
+<style>
+  /* the usual copy protection: no selection, no context menu, no copy, plus a transparent layer over the text */
+  html, body { -webkit-user-select: none; user-select: none; }
+  body { font-family: sans-serif; padding: 24px; position: relative; }
+  #post { position: relative; width: 520px; border: 1px solid #ccc; padding: 14px; }
+  #shield { position: absolute; inset: 0; background: transparent; z-index: 10; }
+</style>
+<script>
+  document.addEventListener("copy", e => e.preventDefault());
+  document.addEventListener("contextmenu", e => e.preventDefault());
+  document.addEventListener("selectstart", e => e.preventDefault());
+</script>
+</head>
+<body>
+<h3>복사 방지가 걸린 숙제 글 (테스트용 가짜 페이지)</h3>
+<div id="post">
+  <p>1. 단어 3,4</p>
+  <p>2. 낭독 : 37회 선행 16일 금요일 밤까지</p>
+  <p>3. 기출로 적중 해커스 중학 영문법 3학년 :</p>
+  <p>① 본책 409p 워크북 212p 까지</p>
+  <p>4. Reading : Reading Expert 유닛 14오답</p>
+  <div id="shield"></div>
+</div>
+</body>
+</html>

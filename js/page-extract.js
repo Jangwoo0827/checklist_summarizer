@@ -85,6 +85,19 @@
       if (old && old !== el) paint(old);
       if (el) paint(el);
     }
+    // Copy-protected pages often lay an empty, transparent layer over their text. When the element under
+    // the pointer holds no text, look at what is stacked beneath it.
+    function hasText(el) { return (el.innerText || el.textContent || "").trim().length > 0; }
+    function targetAt(e) {
+      var el = e.target;
+      if (el && el.nodeType === 1 && !hasText(el) && document.elementsFromPoint) {
+        var stack = document.elementsFromPoint(e.clientX, e.clientY);
+        for (var i = 0; i < stack.length; i++) {
+          if (!ui.contains(stack[i]) && hasText(stack[i])) { el = stack[i]; break; }
+        }
+      }
+      return blockOf(el);
+    }
     function blockOf(el) {
       while (el && el !== document.body && el !== document.documentElement && INLINE.test(el.tagName)) el = el.parentElement;
       return el === document.documentElement ? null : el;
@@ -94,14 +107,15 @@
     function onMove(e) {
       if (ui.contains(e.target)) return;
       climbed = [];
-      setHover(blockOf(e.target));
+      setHover(targetAt(e));
     }
     function onClick(e) {
       if (ui.contains(e.target)) return;
       e.preventDefault();
       e.stopPropagation();
       // The hovered block (which ArrowUp may have widened), unless the click landed somewhere else.
-      var el = hover && hover.contains(e.target) ? hover : blockOf(e.target);
+      var under = targetAt(e);
+      var el = hover && under && hover.contains(under) ? hover : under;
       if (!el) return;
       var at = picked.indexOf(el);
       if (at >= 0) picked.splice(at, 1);
@@ -170,5 +184,110 @@
     }
     done.addEventListener("click", finish);
     cancel.addEventListener("click", exit);
+  };
+
+  // Region mode, for pages whose text can't be selected or read at all (text drawn as an image or canvas,
+  // copy protection). The user drags a rectangle over what they want; the extension's background worker
+  // screenshots the visible tab, the crop is saved as an image, and the popup reads it with OCR the next
+  // time it opens.
+  CN.pageRegion = function pageRegion() {
+    if (window.__cnPicking) return;
+    window.__cnPicking = true;
+
+    var GREEN = "#2f9e7d";
+    var layer = document.createElement("div");
+    layer.setAttribute("style", "all:initial;position:fixed;inset:0;z-index:2147483646;cursor:crosshair;background:rgba(0,0,0,.18)");
+    var box = document.createElement("div");
+    box.setAttribute("style", "all:initial;position:fixed;display:none;z-index:2147483647;pointer-events:none;box-sizing:border-box;" +
+      "border:2px solid " + GREEN + ";background:rgba(47,158,125,.18)");
+    var bar = document.createElement("div");
+    bar.textContent = "가져올 영역을 드래그하세요 · Esc 취소";
+    bar.setAttribute("style", "all:initial;position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:2147483647;" +
+      "padding:10px 16px;border-radius:12px;background:#23261f;color:#ede9df;font:600 14px/1.4 sans-serif;" +
+      "box-shadow:0 10px 30px rgba(0,0,0,.4);pointer-events:none");
+    document.documentElement.appendChild(layer);
+    document.documentElement.appendChild(box);
+    document.documentElement.appendChild(bar);
+
+    var x0 = 0, y0 = 0, dragging = false, rect = null;
+
+    function notice(message) {
+      var n = document.createElement("div");
+      n.textContent = message;
+      n.setAttribute("style", "all:initial;position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:2147483647;" +
+        "padding:12px 18px;border-radius:12px;background:#23261f;color:#ede9df;font:600 14px/1.4 sans-serif;" +
+        "box-shadow:0 10px 30px rgba(0,0,0,.4)");
+      document.documentElement.appendChild(n);
+      setTimeout(function () { if (n.parentNode) n.parentNode.removeChild(n); }, 4500);
+    }
+    function cleanup() {
+      document.removeEventListener("keydown", onKey, true);
+      [layer, box, bar].forEach(function (el) { if (el.parentNode) el.parentNode.removeChild(el); });
+    }
+    function exit() { cleanup(); window.__cnPicking = false; }
+
+    function draw(x1, y1) {
+      rect = { x: Math.min(x0, x1), y: Math.min(y0, y1), w: Math.abs(x1 - x0), h: Math.abs(y1 - y0) };
+      box.style.display = "block";
+      box.style.left = rect.x + "px";
+      box.style.top = rect.y + "px";
+      box.style.width = rect.w + "px";
+      box.style.height = rect.h + "px";
+    }
+    layer.addEventListener("mousedown", function (e) {
+      e.preventDefault();
+      dragging = true;
+      x0 = e.clientX;
+      y0 = e.clientY;
+      draw(x0, y0);
+    });
+    layer.addEventListener("mousemove", function (e) { if (dragging) draw(e.clientX, e.clientY); });
+    layer.addEventListener("mouseup", function (e) {
+      if (!dragging) return;
+      dragging = false;
+      draw(e.clientX, e.clientY);
+      if (rect.w < 12 || rect.h < 12) { box.style.display = "none"; rect = null; return; }   // a stray click
+      capture(rect);
+    });
+    function onKey(e) {
+      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); exit(); }
+    }
+    document.addEventListener("keydown", onKey, true);
+
+    function capture(r) {
+      // Take our own overlay out of the picture, give the page two frames to repaint, then screenshot.
+      cleanup();
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          setTimeout(function () {
+            try {
+              chrome.runtime.sendMessage({ type: "cn-capture" }, function (reply) {
+                if (!reply || !reply.dataUrl) { exit(); notice("화면을 캡처하지 못했어요. 확장 프로그램을 새로고침한 뒤 다시 해보세요."); return; }
+                var img = new Image();
+                img.onload = function () {
+                  // The screenshot is in device pixels, the rectangle in CSS pixels.
+                  var sx = img.naturalWidth / window.innerWidth;
+                  var sy = img.naturalHeight / window.innerHeight;
+                  var canvas = document.createElement("canvas");
+                  canvas.width = Math.max(1, Math.round(r.w * sx));
+                  canvas.height = Math.max(1, Math.round(r.h * sy));
+                  canvas.getContext("2d").drawImage(img, r.x * sx, r.y * sy, r.w * sx, r.h * sy, 0, 0, canvas.width, canvas.height);
+                  var image = canvas.toDataURL("image/png");
+                  chrome.storage.local.set({ cnPending: { image: image, url: location.href, at: Date.now() } }, function () {
+                    exit();
+                    notice("가져왔어요! 확장 프로그램 아이콘을 누르면 영역의 글자를 읽어서 채워 드려요.");
+                  });
+                };
+                img.onerror = function () { exit(); notice("캡처한 화면을 열지 못했어요."); };
+                img.src = reply.dataUrl;
+              });
+            } catch (err) {
+              exit();
+              notice("이 페이지에서는 화면을 캡처할 수 없어요.");
+            }
+          }, 80);
+        });
+      });
+    }
   };
 })(typeof window !== "undefined" ? window : globalThis);

@@ -48,6 +48,49 @@
     util.toast("'" + name + "' 템플릿으로 저장했어요");
   }
 
+  // "템플릿에 합치기": the text already in the editor (typed, pasted, read from a photo) goes into a saved template.
+  var fillDialog = doc.getElementById("fill-dialog");
+  var elFillList = doc.getElementById("fill-template-list");
+
+  function openFill() {
+    if (!elText.value.trim()) {
+      util.toast("합칠 글을 먼저 적거나 붙여넣어 주세요");
+      elText.focus();
+      return;
+    }
+    if (!store.templates.length) {
+      util.toast("저장해 둔 템플릿이 없어요. 먼저 \"템플릿 저장\"으로 틀을 만들어 주세요");
+      return;
+    }
+    elFillList.innerHTML = "";
+    store.templates.forEach(function (tpl) {
+      var item = doc.createElement("button");
+      item.type = "button";
+      item.className = "fill-choice";
+      var name = doc.createElement("strong");
+      name.textContent = tpl.name;
+      var preview = doc.createElement("span");
+      preview.textContent = tpl.text.split("\n").slice(0, 3).join("  /  ");
+      item.appendChild(name);
+      item.appendChild(preview);
+      item.addEventListener("click", function () {
+        fillDialog.close();
+        CN.input.replaceText(CN.templateFill.apply(tpl.text, elText.value));
+        util.toast("\"" + tpl.name + "\" 템플릿에 채웠어요. 틀린 곳이 있으면 고쳐주세요");
+      });
+      elFillList.appendChild(item);
+    });
+    fillDialog.showModal();
+  }
+
+  doc.getElementById("btn-fill-template").addEventListener("click", openFill);
+  Array.prototype.forEach.call(fillDialog.querySelectorAll("[data-close-dialog]"), function (btn) {
+    btn.addEventListener("click", function () { fillDialog.close(); });
+  });
+  fillDialog.addEventListener("click", function (e) {
+    if (e.target === fillDialog) fillDialog.close();
+  });
+
   doc.getElementById("btn-save-template").addEventListener("click", openSave);
   doc.getElementById("template-save").addEventListener("click", save);
   elName.addEventListener("input", function () { showError(""); updateNote(); });

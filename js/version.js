@@ -4,10 +4,20 @@
 
   // The one place the app version lives. manifest.json must carry the same number (a test checks it).
   // To release: bump VERSION here and in manifest.json, add an entry at the top of PATCH_NOTES.
-  var VERSION = "1.6.0";
+  var VERSION = "1.7.0";
 
   // Newest first. Shown in 설정 > 패치노트.
   var PATCH_NOTES = [
+    {
+      version: "1.7.0", date: "2026-11-13",
+      items: [
+        "가져온 글을 템플릿에 채울 수 있어요. 팝업에서 템플릿을 고르거나, 입력 화면의 \"템플릿에 합치기\"를 눌러요.",
+        "이름이 같은 항목(예: 단어)은 틀의 빈칸 자리에 들어가고, 남는 값은 순서대로 빈칸을 채워요. 어디에도 안 맞는 항목은 맨 아래에 붙어요.",
+        "복사·선택이 막힌 페이지에서도 가져올 수 있어요. 클릭해서 고르기가 글 위를 덮은 투명한 막을 뚫고 읽어요.",
+        "글이 이미지나 canvas로 되어 있어도 돼요. \"영역 드래그해서 글자 읽기\"로 화면의 영역을 잡으면 사진처럼 읽어서 채워요.",
+        "화면 캡처를 위해 확장 프로그램에 아주 작은 백그라운드 파일을 추가했어요. 지금 보고 있는 탭만 캡처해요."
+      ]
+    },
     {
       version: "1.6.0", date: "2026-11-13",
       items: [

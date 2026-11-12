@@ -153,15 +153,13 @@
     if (!doc.execCommand("insertText", false, chunk)) elText.value = current ? current + chunk : text;
   }
 
-  function read(file) {
-    if (busy || !file || !/^image\//.test(file.type)) return;
-    if (root.location.protocol === "file:") {
-      util.toast("파일로 열면 사진 인식이 안 돼요. 웹사이트나 확장 프로그램에서 써주세요");
-      return;
-    }
+  // Reads an image with OCR and resolves { text, columns } (columns > 1 for a table split along its rules).
+  // The photo button shows the progress while it runs.
+  function recognize(file) {
+    if (busy) return Promise.reject(new Error("busy"));
     setBusy(true);
     var columnCount = 1;
-    Promise.all([loadImage(file), getWorker()]).then(function (res) {
+    return Promise.all([loadImage(file), getWorker()]).then(function (res) {
       var g = grayscale(res[0]);
       var ranges = columns(g);
       columnCount = ranges.length;
@@ -176,16 +174,30 @@
         });
       }, Promise.resolve()).then(function () { return texts; });
     }).then(function (texts) {
-      var text = texts.filter(Boolean).join("\n\n");
-      if (!text) { util.toast("사진에서 글자를 찾지 못했어요"); return; }
-      insertText(text);
-      util.toast(columnCount > 1
-        ? "칸이 " + columnCount + "개라 차례로 넣었어요. 필요 없는 칸은 지우고, 틀린 글자는 고쳐주세요"
+      setBusy(false);
+      return { text: texts.filter(Boolean).join("\n\n"), columns: columnCount };
+    }, function (err) {
+      setBusy(false);
+      throw err;
+    });
+  }
+
+  function read(file) {
+    if (busy || !file || !/^image\//.test(file.type)) return;
+    if (root.location.protocol === "file:") {
+      util.toast("파일로 열면 사진 인식이 안 돼요. 웹사이트나 확장 프로그램에서 써주세요");
+      return;
+    }
+    recognize(file).then(function (result) {
+      if (!result.text) { util.toast("사진에서 글자를 찾지 못했어요"); return; }
+      insertText(result.text);
+      util.toast(result.columns > 1
+        ? "칸이 " + result.columns + "개라 차례로 넣었어요. 필요 없는 칸은 지우고, 틀린 글자는 고쳐주세요"
         : "사진을 읽었어요. 틀린 글자가 있으면 고쳐주세요");
     }).catch(function (err) {
       console.error(err);
       util.toast("사진을 읽지 못했어요. 인터넷 연결을 확인해 주세요");
-    }).then(function () { setBusy(false); });
+    });
   }
 
   function imageFrom(items) {
@@ -234,4 +246,5 @@
     e.preventDefault();
     read(file);
   });
+  CN.photo = { read: read, recognize: recognize };
 })(window);
