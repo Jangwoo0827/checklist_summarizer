@@ -1,0 +1,97 @@
+(function (root) {
+  "use strict";
+  var CN = root.CN = root.CN || {};
+
+  // The one place the app version lives. manifest.json must carry the same number (a test checks it).
+  // To release: bump VERSION here and in manifest.json, add an entry at the top of PATCH_NOTES.
+  var VERSION = "1.5.0";
+
+  // Newest first. Shown in 설정 > 패치노트.
+  var PATCH_NOTES = [
+    {
+      version: "1.5.0", date: "2026-11-12",
+      items: [
+        "설정이 계정으로 동기화돼요. 폰과 PC에서 같은 번호 모양을 써요.",
+        "체크리스트마다 메모를 남길 수 있어요. 목록 카드에는 메모의 첫 줄이 보여요.",
+        "설정에 버전과 패치노트를 추가했어요."
+      ]
+    },
+    {
+      version: "1.4.0", date: "2026-11-12",
+      items: [
+        "항목을 ⋮⋮ 손잡이로 끌어서 순서를 바꿀 수 있어요. 하위 항목이 함께 움직이고, ↑ ↓ 키로도 돼요.",
+        "순서를 바꾸면 번호를 다시 매기고, 바로 되돌릴 수 있어요.",
+        "설정에서 Tab/Enter로 붙는 번호 모양(1. 1) (1) 1- 1_ 1 ① a) - • 없음)을 단계별로 고를 수 있어요.",
+        "번호가 붙은 줄을 Tab으로 들여쓰면 그 단계의 모양으로 바뀌어요."
+      ]
+    },
+    {
+      version: "1.3.0", date: "2026-11-05",
+      items: [
+        "템플릿: 자주 쓰는 틀을 저장해 두고 \"템플릿으로 시작\"에서 불러와요.",
+        "틀의 빈칸(___)은 Tab/Shift+Tab으로 옮겨 다니며 채워요. 템플릿도 계정으로 동기화돼요."
+      ]
+    },
+    {
+      version: "1.2.2", date: "2026-10-29",
+      items: [
+        "항목을 더블클릭해도 파랗게 선택되지 않아요. 입력칸에서만 글자를 선택할 수 있어요."
+      ]
+    },
+    {
+      version: "1.2.1", date: "2026-10-18",
+      items: [
+        "사진 인식이 훨씬 정확해졌어요. 글자 오류율이 약 35%에서 약 7%로 줄었어요.",
+        "들여쓰기와 ① 번호, 쪽수(409p)를 더 잘 알아봐요.",
+        "확장 프로그램 오류 페이지에 경고가 쌓이지 않도록 정리했어요."
+      ]
+    },
+    {
+      version: "1.2.0", date: "2026-10-18",
+      items: [
+        "사진에서 숙제를 읽어요. 사진 선택, Ctrl+V, 끌어다 놓기를 지원해요.",
+        "표 사진은 칸을 나눠서 읽어요. 브라우저 안에서 돌아가서 계정이나 키가 필요 없어요."
+      ]
+    },
+    {
+      version: "1.1.0", date: "2026-10-08",
+      items: [
+        "아이디만 쓰던 동기화를 이메일과 비밀번호 계정으로 바꿨어요.",
+        "예전 아이디의 체크리스트는 가져올 수 있어요."
+      ]
+    },
+    {
+      version: "1.0.0", date: "2026-09-26",
+      items: [
+        "크롬 확장 프로그램으로도 쓸 수 있어요. 툴바 팝업, ↗ 큰 화면 열기, Alt+Shift+C 단축키가 있어요."
+      ]
+    },
+    {
+      version: "0.3.0", date: "2026-09-26",
+      items: [
+        "체크 표시가 선으로 그려지고, 취소선이 왼쪽에서 오른쪽으로 그어져요.",
+        "다 끝낸 체크리스트는 \"완료한 체크리스트\"에 모여요.",
+        "삭제와 체크 초기화를 되돌릴 수 있어요.",
+        "Enter를 치면 번호가 이어지고, 다 끝내면 축하 효과가 나와요."
+      ]
+    },
+    {
+      version: "0.2.0", date: "2026-09-26",
+      items: [
+        "파일을 나누고, 아이디로 PC와 폰을 동기화하는 기능을 넣었어요.",
+        "안 끝낸 항목만 새 체크리스트로 넘기기, 항목 접기/펼치기, 라이트/다크 전환을 추가했어요."
+      ]
+    },
+    {
+      version: "0.1.0", date: "2026-08-20",
+      items: [
+        "숙제 텍스트를 붙여넣으면 번호와 들여쓰기를 알아보고 계층 체크리스트로 바꿔줘요.",
+        "체크 표시에 마우스를 올리면 커지고, 누르면 통통 튀어요."
+      ]
+    }
+  ];
+
+  CN.VERSION = VERSION;
+  CN.PATCH_NOTES = PATCH_NOTES;
+  if (typeof module !== "undefined" && module.exports) module.exports = { VERSION: VERSION, PATCH_NOTES: PATCH_NOTES };
+})(typeof window !== "undefined" ? window : globalThis);

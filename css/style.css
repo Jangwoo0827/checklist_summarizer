@@ -527,3 +527,16 @@ html.is-popup .chip { max-width: 96px; }
   color: var(--ink-muted); font-size: 12.5px; line-height: 1.5;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+
+/* ---------- patch notes ---------- */
+#settings-dialog { max-height: calc(100vh - 32px); overflow-y: auto; }
+.patch-notes { margin: 6px 0 0; border-top: 1px solid var(--rule); padding-top: 10px; }
+.patch-notes summary { cursor: pointer; padding: 4px 0; font-size: 14px; font-weight: 700; }
+.patch-version { margin-left: 6px; font-size: 12px; font-weight: 600; color: var(--accent); }
+.patch-list { max-height: 260px; overflow-y: auto; margin-top: 8px; padding-right: 4px; }
+.patch-head { display: flex; align-items: center; gap: 8px; margin: 14px 0 6px; font-size: 13.5px; font-weight: 800; }
+.patch-head:first-child { margin-top: 4px; }
+.patch-date { font-size: 11.5px; font-weight: 500; color: var(--ink-muted); }
+.patch-badge { padding: 1px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 11px; font-weight: 700; }
+.patch-items { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.6; color: var(--ink-muted); }
+.patch-items li { margin-bottom: 3px; }

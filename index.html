@@ -132,6 +132,11 @@
   </label>
   <p class="hint">로그인하면 이 설정도 계정으로 동기화돼요. 로그인하지 않으면 이 기기에만 저장돼요.</p>
 
+  <details class="patch-notes">
+    <summary>패치노트 <span class="patch-version num" id="app-version"></span></summary>
+    <div class="patch-list" id="patch-list"></div>
+  </details>
+
   <div class="dialog-actions">
     <button class="btn btn-primary" type="button" data-close-dialog>닫기</button>
   </div>
@@ -196,6 +201,7 @@
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
 <script src="js/config.js"></script>
+<script src="js/version.js"></script>
 <script src="js/util.js"></script>
 <script src="js/parser.js"></script>
 <script src="js/markers.js"></script>

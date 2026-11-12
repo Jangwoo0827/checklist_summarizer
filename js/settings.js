@@ -59,6 +59,45 @@
 
   var refreshDialog = function () {};
 
+  // 패치노트: newest first, the running version marked. Text goes in as textContent, never markup.
+  function renderPatchNotes(doc) {
+    var elVersion = doc.getElementById("app-version");
+    var elList = doc.getElementById("patch-list");
+    if (!elVersion || !elList || !CN.PATCH_NOTES) return;
+    elVersion.textContent = "v" + CN.VERSION;
+    // The dialog is tall; bring the notes into view when they are opened.
+    var details = elList.parentElement;
+    details.addEventListener("toggle", function () {
+      if (details.open) details.scrollIntoView({ block: "end" });
+    });
+    CN.PATCH_NOTES.forEach(function (note) {
+      var head = doc.createElement("h3");
+      head.className = "patch-head";
+      var title = doc.createElement("span");
+      title.textContent = "v" + note.version;
+      var date = doc.createElement("span");
+      date.className = "patch-date num";
+      date.textContent = note.date;
+      head.appendChild(title);
+      head.appendChild(date);
+      if (note.version === CN.VERSION) {
+        var badge = doc.createElement("span");
+        badge.className = "patch-badge";
+        badge.textContent = "현재";
+        head.appendChild(badge);
+      }
+      var ul = doc.createElement("ul");
+      ul.className = "patch-items";
+      note.items.forEach(function (text) {
+        var li = doc.createElement("li");
+        li.textContent = text;
+        ul.appendChild(li);
+      });
+      elList.appendChild(head);
+      elList.appendChild(ul);
+    });
+  }
+
   function init() {
     var doc = root.document;
     var dialog = doc.getElementById("settings-dialog");
@@ -85,6 +124,7 @@
       elPreview.textContent = previewText();
     }
     refreshDialog = function () { if (dialog.open) show(); };
+    renderPatchNotes(doc);
 
     selects.forEach(function (select) {
       select.addEventListener("change", function () {
