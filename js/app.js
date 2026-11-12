@@ -49,6 +49,7 @@
 
   store.load();
   CN.theme.init();
+  CN.settings.init();
   CN.account.init();
   CN.sync.onRemoteChange(refresh);
   doc.getElementById("btn-new").addEventListener("click", CN.input.openNew);

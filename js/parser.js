@@ -22,7 +22,9 @@
     return tabCount + Math.floor(spaceCount / 4);
   }
 
-  function parseText(text) {
+  // markerLevelOf(line) may map a marker to a level using the user's marker settings; it returns -1
+  // when it has no opinion, and the built-in marker table decides.
+  function parseText(text, markerLevelOf) {
     var rawLines = text.split("\n");
     var flat = [];
     var prevLevel = -1;
@@ -31,7 +33,8 @@
       var line = raw.trim();
       if (!line) continue;
       var wsLevel = leadingIndentLevel(raw);
-      var markerLevel = detectMarkerLevel(line, prevLevel);
+      var markerLevel = markerLevelOf ? markerLevelOf(line) : -1;
+      if (markerLevel < 0) markerLevel = detectMarkerLevel(line, prevLevel);
       var level = Math.max(wsLevel, markerLevel);
       flat.push({ id: util.uid(), text: line, level: level });
       prevLevel = level;
@@ -50,7 +53,7 @@
     var stack = [{ node: root, level: -1 }];
     for (var i = 0; i < flat.length; i++) {
       var item = flat[i];
-      var node = { id: item.id, text: item.text, children: [] };
+      var node = { id: item.id, text: item.text, level: item.level, children: [] };
       while (stack[stack.length - 1].level >= item.level) stack.pop();
       stack[stack.length - 1].node.children.push(node);
       stack.push({ node: node, level: item.level });
@@ -117,6 +120,43 @@
     });
   }
 
+  function findSiblings(nodes, id) {
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i].id === id) return nodes;
+      var inner = findSiblings(nodes[i].children, id);
+      if (inner) return inner;
+    }
+    return null;
+  }
+
+  // Moves item `id` (with everything under it) before sibling `beforeId`, or to the end of its
+  // siblings when beforeId is null. Only the order among siblings changes, never the nesting.
+  // Returns { lines, groupIds } (groupIds = the siblings in their new order), or null if nothing moves.
+  function moveSibling(lines, id, beforeId) {
+    var tree = buildTree(lines);
+    var group = findSiblings(tree, id);
+    if (!group) return null;
+    var from = group.map(function (n) { return n.id; }).indexOf(id);
+    var node = group[from];
+    var rest = group.filter(function (n) { return n.id !== id; });
+    var to = rest.length;
+    if (beforeId) {
+      to = rest.map(function (n) { return n.id; }).indexOf(beforeId);
+      if (to < 0) return null;
+    }
+    if (to === from) return null;
+    rest.splice(to, 0, node);
+    Array.prototype.splice.apply(group, [0, group.length].concat(rest));
+
+    var byId = {};
+    lines.forEach(function (l) { byId[l.id] = l; });
+    var out = [];
+    (function walk(nodes) {
+      nodes.forEach(function (n) { out.push(byId[n.id]); walk(n.children); });
+    })(tree);
+    return { lines: out, groupIds: rest.map(function (n) { return n.id; }) };
+  }
+
   // Carries per-line flags (checked, collapsed) across a re-parse by matching unchanged text.
   function remapByText(oldLines, newLines, oldFlags) {
     var oldIdByText = {};
@@ -138,7 +178,8 @@
     progress: progress,
     unfinishedLeafTexts: unfinishedLeafTexts,
     remainingLines: remainingLines,
-    remapByText: remapByText
+    remapByText: remapByText,
+    moveSibling: moveSibling
   };
   if (typeof module !== "undefined" && module.exports) module.exports = CN.parser;
 })(typeof window !== "undefined" ? window : globalThis);

@@ -7,6 +7,7 @@
 
   var CARET_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
   var CHECK_SVG = '<svg class="chk-mark" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.6 8.4l2.9 2.9 5.9-6.6" pathLength="1"/></svg>';
+  var GRIP_SVG = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>';
   var STAGGER_MS = 40;
   var MAX_STAGGER_MS = 400;
 
@@ -23,7 +24,7 @@
 
   function activeList() { return store.getList(CN.app.activeId()); }
 
-  function render() {
+  function render(focusId) {
     var list = activeList();
     if (!list) return null;
     if (root.document.activeElement !== elTitle) elTitle.value = list.title;
@@ -35,10 +36,12 @@
       animated: 0
     };
     elTreeRoot.innerHTML = "";
-    parser.buildTree(list.lines).forEach(function (node) {
-      elTreeRoot.appendChild(renderNode(node, 0, ctx));
+    var top = parser.buildTree(list.lines);
+    top.forEach(function (node) {
+      elTreeRoot.appendChild(renderNode(node, 0, ctx, top.length));
     });
     lastRender = { listId: list.id, states: ctx.states };
+    if (focusId) focusHandle(focusId);
 
     var p = parser.progress(list.lines, list.checked);
     var complete = p.total > 0 && p.done === p.total;
@@ -51,9 +54,20 @@
     return p;
   }
 
-  function renderNode(node, depth, ctx) {
+  function focusHandle(id) {
+    var items = elTreeRoot.querySelectorAll("li[data-id]");
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].getAttribute("data-id") !== id) continue;
+      var handle = items[i].querySelector(".drag-handle");
+      if (handle) handle.focus({ preventScroll: true });
+      return;
+    }
+  }
+
+  function renderNode(node, depth, ctx, siblingCount) {
     var list = ctx.list;
     var li = root.document.createElement("li");
+    li.setAttribute("data-id", node.id);
     var isLeaf = node.children.length === 0;
     var st = isLeaf ? (list.checked[node.id] ? "true" : "false") : parser.nodeState(node, list.checked);
     var collapsed = !isLeaf && !!list.collapsed[node.id];
@@ -90,14 +104,70 @@
     row.appendChild(txt);
 
     if (!isLeaf) row.appendChild(renderCaret(list, node, collapsed));
+    if (siblingCount > 1) row.appendChild(renderHandle(node, li));
     li.appendChild(row);
 
     if (!isLeaf && !collapsed) {
       var ul = root.document.createElement("ul");
-      node.children.forEach(function (child) { ul.appendChild(renderNode(child, depth + 1, ctx)); });
+      node.children.forEach(function (child) { ul.appendChild(renderNode(child, depth + 1, ctx, node.children.length)); });
       li.appendChild(ul);
     }
     return li;
+  }
+
+  function renderHandle(node, li) {
+    var btn = root.document.createElement("button");
+    btn.type = "button";
+    btn.className = "drag-handle";
+    btn.title = "끌어서 순서 바꾸기 (↑ ↓ 키로도 돼요)";
+    btn.setAttribute("aria-label", "순서 바꾸기: " + node.text);
+    btn.innerHTML = GRIP_SVG;
+    CN.dragSort.attach(btn, li, moveItem);
+    return btn;
+  }
+
+  function copyLines(lines) {
+    return lines.map(function (l) {
+      var copy = {};
+      Object.keys(l).forEach(function (k) { copy[k] = l[k]; });
+      return copy;
+    });
+  }
+
+  // After a reorder, "2. 낭독 / 1. 단어" would read wrong, so renumber a plainly numbered group.
+  function renumberGroup(list, ids) {
+    var byId = {};
+    list.lines.forEach(function (l) { byId[l.id] = l; });
+    var group = ids.map(function (id) { return byId[id]; });
+    var next = CN.markers.renumber(group.map(function (l) { return l.text; }));
+    if (!next) return false;
+    var changed = false;
+    group.forEach(function (l, i) {
+      if (l.text !== next[i]) { l.text = next[i]; changed = true; }
+    });
+    return changed;
+  }
+
+  function moveItem(id, beforeId) {
+    var list = activeList();
+    if (!list) return;
+    var saved = copyLines(list.lines);
+    var res = parser.moveSibling(list.lines, id, beforeId);
+    if (!res) return;
+    list.lines = res.lines;
+    var renumbered = CN.settings.get().renumber && renumberGroup(list, res.groupIds);
+    store.commit(list);
+    render(id);
+    util.toast(renumbered ? "순서를 바꾸고 번호를 다시 매겼어요" : "순서를 바꿨어요", {
+      action: "되돌리기",
+      onAction: function () {
+        var current = store.getList(list.id);
+        if (!current) return;
+        current.lines = saved;
+        store.commit(current);
+        if (CN.app.activeId() === current.id) render();
+      }
+    });
   }
 
   function renderCaret(list, node, collapsed) {

@@ -104,7 +104,7 @@
   }
 
   function build() {
-    var newLines = parser.parseText(elText.value);
+    var newLines = parser.parseText(elText.value, CN.settings.markerLevelOf);
     if (!newLines.length) {
       util.toast("할 일을 한 줄 이상 적어주세요");
       elText.focus();
@@ -130,39 +130,10 @@
   // ---------- list-aware typing: Enter continues numbering, Tab/Shift+Tab nest ----------
   var INDENT = "    ";
 
-  // Splits a line into indent, list marker and content. Decimals like "1.5kg" are not markers.
-  function parseLine(line) {
-    var m;
-    if ((m = line.match(/^([ \t]*)(\d+)([.)])(?!\d)[ \t]*(.*)$/))) {
-      return { indent: m[1], marker: m[2] + m[3], rest: m[4], next: (Number(m[2]) + 1) + m[3] + " " };
-    }
-    if ((m = line.match(/^([ \t]*)\((\d+)\)[ \t]*(.*)$/))) {
-      return { indent: m[1], marker: "(" + m[2] + ")", rest: m[3], next: "(" + (Number(m[2]) + 1) + ") " };
-    }
-    if ((m = line.match(/^([ \t]*)([a-zA-Z])\)[ \t]*(.*)$/))) {
-      return { indent: m[1], marker: m[2] + ")", rest: m[3], next: String.fromCharCode(m[2].charCodeAt(0) + 1) + ") " };
-    }
-    if ((m = line.match(/^([ \t]*)([-•])[ \t]+(.*)$/))) {
-      return { indent: m[1], marker: m[2], rest: m[3], next: m[2] + " " };
-    }
-    m = line.match(/^([ \t]*)(.*)$/);
-    return { indent: m[1], marker: "", rest: m[2], next: "" };
-  }
-
-  function indentWidth(indent) { return indent.replace(/\t/g, INDENT).length; }
-
-  // The marker to use on a line at `width` after the lines above it: continue the nearest
-  // sibling's numbering, or start a new list ("1." at the top level, "1)" below it).
-  function markerFor(lines, index, width) {
-    for (var i = index - 1; i >= 0; i--) {
-      var p = parseLine(lines[i]);
-      if (!p.marker && !p.rest) continue;
-      var w = indentWidth(p.indent);
-      if (w < width) break;
-      if (w === width && p.marker) return p.next;
-    }
-    return width === 0 ? "1. " : "1) ";
-  }
+  // Marker parsing and numbering live in markers.js; the style used at each level comes from settings.
+  function parseLine(line) { return CN.markers.parseLine(line, CN.settings.styleFor); }
+  function indentWidth(indent) { return CN.markers.indentWidth(indent); }
+  function markerFor(lines, index, width) { return CN.markers.markerFor(lines, index, width, CN.settings.styleFor); }
 
   // Edits through execCommand so the browser's Ctrl+Z still works; falls back if unsupported.
   function replaceRange(start, end, text) {
@@ -214,6 +185,14 @@
       var lines = elText.value.split("\n");
       var index = elText.value.slice(0, b.start).split("\n").length - 1;
       replaceRange(b.start, b.end, newIndent + markerFor(lines, index, indentWidth(newIndent)));
+    } else if (p.marker && p.styleId === CN.settings.styleFor(width)) {
+      // The item still wears the marker of its old level (e.g. "3. 독해"): give it the new level's style.
+      var all = elText.value.split("\n");
+      var at = elText.value.slice(0, b.start).split("\n").length - 1;
+      var prefix = newIndent + markerFor(all, at, indentWidth(newIndent));
+      replaceRange(b.start, b.end, prefix + p.rest);
+      var caret = Math.max(b.start + prefix.length, b.start + prefix.length + p.rest.length - (b.end - pos));
+      elText.setSelectionRange(caret, caret);
     } else {
       replaceRange(b.start, b.start + p.indent.length, newIndent);
       var shift = newIndent.length - p.indent.length;
