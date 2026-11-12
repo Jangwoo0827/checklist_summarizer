@@ -138,3 +138,31 @@ test("a document from before templates existed merges and compares cleanly", () 
   assert.equal(merged.templates.length, 1);
   assert.equal(store.docKey(old), store.docKey({ lists: old.lists, templates: [], deleted: {} }));
 });
+
+test("settings sync: the newest copy wins, and a missing copy never erases the other", () => {
+  const older = { markers: ["dot", "paren", "paren"], renumber: true, updatedAt: 5 };
+  const newer = { markers: ["dash", "paren", "circle"], renumber: false, updatedAt: 9 };
+  assert.deepEqual(store.mergeDocs({ lists: [], settings: older, deleted: {} }, { lists: [], settings: newer, deleted: {} }).settings, newer);
+  assert.deepEqual(store.mergeDocs({ lists: [], settings: newer, deleted: {} }, { lists: [], settings: older, deleted: {} }).settings, newer);
+  assert.deepEqual(store.mergeDocs({ lists: [], settings: older, deleted: {} }, { lists: [], deleted: {} }).settings, older);
+  assert.deepEqual(store.mergeDocs({ lists: [], deleted: {} }, { lists: [], settings: newer, deleted: {} }).settings, newer);
+  assert.equal(store.mergeDocs({ lists: [], deleted: {} }, { lists: [], deleted: {} }).settings, null);
+  // settings saved before sync existed have no updatedAt and lose to a stamped copy
+  const legacy = { markers: ["paren", "paren", "paren"], renumber: true };
+  assert.deepEqual(store.mergeDocs({ lists: [], settings: legacy, deleted: {} }, { lists: [], settings: older, deleted: {} }).settings, older);
+});
+
+test("docKey notices a settings change but treats 'no settings' consistently", () => {
+  const base = { lists: [], templates: [], deleted: {} };
+  assert.notEqual(store.docKey(base), store.docKey({ ...base, settings: { markers: ["dot"], renumber: true, updatedAt: 1 } }));
+  assert.equal(store.docKey(base), store.docKey({ ...base, settings: null }));
+  assert.equal(store.docKey({ lists: [], deleted: {} }), store.docKey(base));
+});
+
+test("a list keeps its memo through a merge", () => {
+  const merged = store.mergeDocs(
+    { lists: [{ id: "x", note: "old", updatedAt: 1, createdAt: 1 }], deleted: {} },
+    { lists: [{ id: "x", note: "준비물: 공책\n두 번째 줄", updatedAt: 9, createdAt: 1 }], deleted: {} }
+  );
+  assert.equal(merged.lists[0].note, "준비물: 공책\n두 번째 줄");
+});

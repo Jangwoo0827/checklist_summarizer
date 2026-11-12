@@ -1,20 +1,18 @@
 (function (root) {
   "use strict";
   var CN = root.CN = root.CN || {};
-  var util = CN.util;
   var markers = CN.markers;
 
-  // Per-device preferences: which marker Tab/Enter use at each indent level, and whether a drag
-  // reorder renumbers its siblings. Kept in localStorage like the theme.
-  var KEY = "checklist_note_settings_v1";
+  // Preferences: which marker Tab/Enter use at each indent level, and whether a drag reorder
+  // renumbers its siblings. They live in the store so they sync with the account like lists do.
   var LEVELS = 3; // first level, second level, third level and deeper
   var SAMPLE_WORD = "일지";
 
   function defaults() { return { markers: ["dot", "paren", "paren"], renumber: true }; }
 
-  function load() {
+  // Fills gaps and drops unknown values, so an old or hand-edited saved copy can't break typing.
+  function normalize(raw) {
     var s = defaults();
-    var raw = util.readJSON(KEY, null);
     if (raw && Array.isArray(raw.markers)) {
       for (var i = 0; i < LEVELS; i++) {
         var id = raw.markers[i];
@@ -25,24 +23,21 @@
     return s;
   }
 
-  var current = load();
-  var listeners = [];
-
-  function get() { return current; }
+  function get() { return normalize(CN.store.settings); }
 
   function set(patch) {
-    if (patch.markers) current.markers = patch.markers.slice(0, LEVELS);
-    if (typeof patch.renumber === "boolean") current.renumber = patch.renumber;
-    util.writeJSON(KEY, current);
-    listeners.forEach(function (fn) { fn(current); });
+    var next = get();
+    if (patch.markers) next.markers = patch.markers.slice(0, LEVELS);
+    if (typeof patch.renumber === "boolean") next.renumber = patch.renumber;
+    CN.store.saveSettings(next);
   }
 
   // Style id for a line indented `width` columns (4 columns = one level).
   function styleFor(width) {
-    return current.markers[Math.min(Math.floor(width / 4), LEVELS - 1)];
+    return get().markers[Math.min(Math.floor(width / 4), LEVELS - 1)];
   }
 
-  function markerLevelOf(line) { return markers.levelOfMarker(line, current.markers); }
+  function markerLevelOf(line) { return markers.levelOfMarker(line, get().markers); }
 
   // ---------- dialog ----------
 
@@ -51,7 +46,7 @@
   }
 
   function previewText() {
-    var m = current.markers;
+    var m = get().markers;
     var rows = [
       markers.sample(m[0], 1) + SAMPLE_WORD,
       markers.sample(m[0], 2) + SAMPLE_WORD,
@@ -61,6 +56,8 @@
     ];
     return rows.join("\n");
   }
+
+  var refreshDialog = function () {};
 
   function init() {
     var doc = root.document;
@@ -80,11 +77,14 @@
       });
     });
 
+    // Also called when settings arrive from another device while the dialog is open.
     function show() {
-      selects.forEach(function (select, i) { select.value = current.markers[i]; });
-      elRenumber.checked = current.renumber;
+      var now = get();
+      selects.forEach(function (select, i) { select.value = now.markers[i]; });
+      elRenumber.checked = now.renumber;
       elPreview.textContent = previewText();
     }
+    refreshDialog = function () { if (dialog.open) show(); };
 
     selects.forEach(function (select) {
       select.addEventListener("change", function () {
@@ -112,6 +112,6 @@
     set: set,
     styleFor: styleFor,
     markerLevelOf: markerLevelOf,
-    onChange: function (fn) { listeners.push(fn); }
+    refresh: function () { refreshDialog(); }
   };
 })(window);

@@ -516,3 +516,14 @@ ul.tree li.is-dragging {
 .check-row input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
 html.is-popup .topbar-actions { gap: 4px; }
 html.is-popup .chip { max-width: 96px; }
+
+/* ---------- memo ---------- */
+.note-block { margin-top: 24px; }
+.note-block .field-label { margin-bottom: 8px; }
+.note-block textarea { min-height: 84px; margin-bottom: 0; resize: vertical; overflow: hidden; line-height: 1.6; font-size: 14px; }
+.card-note {
+  margin: 0 0 12px; padding: 7px 10px;
+  border-left: 3px solid var(--accent); border-radius: 4px; background: var(--surface-2);
+  color: var(--ink-muted); font-size: 12.5px; line-height: 1.5;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}

@@ -110,6 +110,14 @@
       card.appendChild(preview);
     }
 
+    var note = (list.note || "").split("\n").map(function (l) { return l.trim(); }).filter(Boolean)[0];
+    if (note) {
+      var noteEl = doc.createElement("p");
+      noteEl.className = "card-note";
+      noteEl.textContent = note;
+      card.appendChild(noteEl);
+    }
+
     var track = doc.createElement("div");
     track.className = "bar-track";
     var fill = doc.createElement("div");

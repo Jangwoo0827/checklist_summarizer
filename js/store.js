@@ -6,6 +6,7 @@
   var LISTS_KEY = "checklist_note_lists_v1";
   var DELETED_KEY = "checklist_note_deleted_v1";
   var TEMPLATES_KEY = "checklist_note_templates_v1";
+  var SETTINGS_KEY = "checklist_note_settings_v1";
 
   var changeListeners = [];
 
@@ -38,7 +39,20 @@
         .filter(function (item) { return !(deleted[item.id] && deleted[item.id] >= (item.updatedAt || 0)); })
         .sort(function (p, q) { return (p.createdAt || 0) - (q.createdAt || 0); });
     }
-    return { lists: mergeItems(a.lists, b.lists), templates: mergeItems(a.templates, b.templates), deleted: deleted };
+    return {
+      lists: mergeItems(a.lists, b.lists),
+      templates: mergeItems(a.templates, b.templates),
+      settings: newerSettings(a.settings, b.settings),
+      deleted: deleted
+    };
+  }
+
+  // Settings are one small object, so the whole thing is last-write-wins. Settings saved before
+  // sync existed have no updatedAt and lose to any stamped copy.
+  function newerSettings(x, y) {
+    if (!x) return y || null;
+    if (!y) return x;
+    return (y.updatedAt || 0) > (x.updatedAt || 0) ? y : x;
   }
 
   // Postgres jsonb reorders object keys, so compare documents by a key-sorted serialization.
@@ -56,12 +70,18 @@
     function byId(items) {
       return (items || []).slice().sort(function (x, y) { return x.id < y.id ? -1 : x.id > y.id ? 1 : 0; });
     }
-    return stableStringify({ lists: byId(doc.lists), templates: byId(doc.templates), deleted: doc.deleted || {} });
+    return stableStringify({
+      lists: byId(doc.lists),
+      templates: byId(doc.templates),
+      settings: doc.settings || null,
+      deleted: doc.deleted || {}
+    });
   }
 
   var store = {
     lists: [],
     templates: [],
+    settings: null, // { markers, renumber, updatedAt } once the user has chosen something
     deleted: {},
 
     load: function () {
@@ -69,6 +89,8 @@
       store.lists = Array.isArray(lists) ? lists.map(normalizeList) : [];
       var templates = util.readJSON(TEMPLATES_KEY, []);
       store.templates = Array.isArray(templates) ? templates : [];
+      var settings = util.readJSON(SETTINGS_KEY, null);
+      store.settings = settings && typeof settings === "object" ? settings : null;
       store.deleted = util.readJSON(DELETED_KEY, {}) || {};
     },
 
@@ -135,14 +157,20 @@
       store.commit(null);
     },
 
+    saveSettings: function (settings) {
+      store.settings = { markers: settings.markers.slice(), renumber: !!settings.renumber, updatedAt: Date.now() };
+      store.commit(null);
+    },
+
     snapshot: function () {
-      return { lists: store.lists, templates: store.templates, deleted: store.deleted };
+      return { lists: store.lists, templates: store.templates, settings: store.settings, deleted: store.deleted };
     },
 
     // Replace everything with a merged document without triggering another sync.
     applyDoc: function (doc) {
       store.lists = (doc.lists || []).map(normalizeList);
       store.templates = doc.templates || [];
+      store.settings = doc.settings || null;
       store.deleted = doc.deleted || {};
       writeLocal();
     },
@@ -150,6 +178,7 @@
     clear: function () {
       store.lists = [];
       store.templates = [];
+      store.settings = null;
       store.deleted = {};
       writeLocal();
     },
@@ -163,6 +192,7 @@
   function writeLocal() {
     util.writeJSON(LISTS_KEY, store.lists);
     util.writeJSON(TEMPLATES_KEY, store.templates);
+    util.writeJSON(SETTINGS_KEY, store.settings);
     util.writeJSON(DELETED_KEY, store.deleted);
   }
 

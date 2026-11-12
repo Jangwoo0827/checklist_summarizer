@@ -17,6 +17,7 @@
   var elFrac = root.document.getElementById("detail-frac");
   var elPct = root.document.getElementById("detail-pct");
   var elStamp = root.document.getElementById("stamp-done");
+  var elNote = root.document.getElementById("detail-note");
 
   // Every render rebuilds the tree, which would replay the check animation on every
   // already-checked item. Remember each item's last state so only real changes animate.
@@ -28,6 +29,11 @@
     var list = activeList();
     if (!list) return null;
     if (root.document.activeElement !== elTitle) elTitle.value = list.title;
+    // Don't overwrite the memo while it is being typed in (a sync can re-render underneath).
+    if (root.document.activeElement !== elNote) {
+      elNote.value = list.note || "";
+      fitNote();
+    }
 
     var ctx = {
       list: list,
@@ -260,6 +266,20 @@
   root.document.getElementById("btn-edit-list").addEventListener("click", function () {
     var list = activeList();
     if (list) CN.input.openEdit(list);
+  });
+
+  // Grows with its content so a long memo doesn't need an inner scrollbar.
+  function fitNote() {
+    elNote.style.height = "auto";
+    elNote.style.height = Math.max(elNote.scrollHeight + 2, 84) + "px";
+  }
+
+  elNote.addEventListener("input", function () {
+    var list = activeList();
+    if (!list) return;
+    list.note = elNote.value;
+    fitNote();
+    store.commit(list);
   });
 
   elTitle.addEventListener("input", function () {

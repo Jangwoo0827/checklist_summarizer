@@ -32,6 +32,7 @@
 
   // Re-render whatever is on screen after data changed underneath (e.g. from another device).
   function refresh() {
+    CN.settings.refresh();
     CN.viewList.render();
     if (current === "detail") {
       if (store.getList(activeId)) CN.viewDetail.render();

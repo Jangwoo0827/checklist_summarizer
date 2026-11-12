@@ -92,6 +92,10 @@
       <span class="progress-pct num" id="detail-pct"></span>
     </div>
     <ul class="tree" id="tree-root"></ul>
+    <div class="note-block">
+      <label class="field-label" for="detail-note">메모</label>
+      <textarea id="detail-note" rows="3" spellcheck="false" placeholder="이 체크리스트에 남길 메모 (예: 선생님이 한 말, 준비물, 헷갈린 점)"></textarea>
+    </div>
     <div class="detail-actions">
       <button class="btn btn-primary" id="btn-edit-list">수정</button>
       <button class="btn" id="btn-carry-over">남은 것만 새로 만들기</button>
@@ -126,7 +130,7 @@
     <input type="checkbox" id="setting-renumber">
     <span>끌어서 순서를 바꾸면 번호를 다시 매겨요</span>
   </label>
-  <p class="hint">설정은 이 기기에만 저장돼요.</p>
+  <p class="hint">로그인하면 이 설정도 계정으로 동기화돼요. 로그인하지 않으면 이 기기에만 저장돼요.</p>
 
   <div class="dialog-actions">
     <button class="btn btn-primary" type="button" data-close-dialog>닫기</button>
