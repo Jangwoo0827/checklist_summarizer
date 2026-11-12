@@ -24,6 +24,7 @@
   }
 
   function openNew() {
+    if (CN.live) CN.live.stop();
     setFillMode(false);
     editingListId = null;
     elBuild.textContent = "체크리스트 만들기";
@@ -48,6 +49,14 @@
     jumpToBlank(false);
   }
 
+  // Text that follows the page's selection live. Unlike replaceText it never moves focus or the cursor,
+  // because the user is working in the page; blanks of a template are flagged for Tab-filling afterwards.
+  function setLiveText(text) {
+    elText.value = text;
+    elText.scrollTop = 0;
+    setFillMode(text.indexOf(BLANK) >= 0);
+  }
+
   // New list whose text comes from outside (a web page, a region read with OCR), already in list format.
   function openNewWithList(text) {
     openNew();
@@ -55,6 +64,7 @@
   }
 
   function openEdit(list) {
+    if (CN.live) CN.live.stop();
     setFillMode(false);
     editingListId = list.id;
     elBuild.textContent = "체크리스트 수정하기";
@@ -117,6 +127,7 @@
   }
 
   function cancel() {
+    if (CN.live) CN.live.stop();
     setFillMode(false);
     var back = editingListId || CN.app.activeId();
     editingListId = null;
@@ -131,6 +142,7 @@
       elText.focus();
       return;
     }
+    if (CN.live) CN.live.stop();
     setFillMode(false);
     var title = elTitle.value.trim() || util.todayLabel();
     var list = editingListId && store.getList(editingListId);
@@ -237,7 +249,7 @@
   elBuild.addEventListener("click", build);
 
   CN.input = {
-    openNew: openNew, openEdit: openEdit, openNewWithList: openNewWithList, replaceText: replaceText,
+    openNew: openNew, openEdit: openEdit, openNewWithList: openNewWithList, replaceText: replaceText, setLiveText: setLiveText,
     getText: function () { return elText.value; }, useTemplate: useTemplate
   };
 })(window);

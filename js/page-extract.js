@@ -38,6 +38,82 @@
     return best;
   };
 
+  // Reports the page's selection to the extension the moment it changes, so the app can show it live.
+  // Runs in the isolated content-script world (so chrome.runtime works). It listens for "selectionchange"
+  // in this document and in every frame of the same site inside it (also when such a frame loads a new
+  // page), and sends { type: "cn-selection", text } - the innermost selection, like pageSelection. A frame
+  // of the same site is already covered by the top page, so only the top page and frames of another site
+  // report; that keeps two reporters from disagreeing about the same selection.
+  CN.pageWatch = function pageWatch() {
+    function reachableFromTop() {
+      try {
+        var w = window;
+        while (w !== w.top) { void w.parent.document; w = w.parent; }
+        return true;
+      } catch (e) { return false; }
+    }
+    // Every document of the same site below `w` has the page's own windows as `w.top`'s descendants,
+    // so a frame that the top page can reach leaves the reporting to the top page.
+    var reports = window === window.top || !reachableFromTop();
+    if (!reports) return { reporting: false };
+    if (window.__cnWatch) { window.__cnWatch.resend(); return { reporting: true, already: true }; }
+
+    function depthOf(w) {
+      var d = 0;
+      try { while (w !== w.parent) { w = w.parent; d++; } } catch (e) {}
+      return d;
+    }
+    function best() {
+      var found = { text: "", depth: -1 };
+      (function visit(w) {
+        var text = "";
+        try { text = String(w.getSelection ? w.getSelection() : ""); } catch (e) {}
+        var depth = depthOf(w);
+        if (text.trim() && (depth > found.depth || (depth === found.depth && text.length > found.text.length))) {
+          found = { text: text, depth: depth };
+        }
+        var frames = [];
+        try { frames = w.document.querySelectorAll("iframe, frame"); } catch (e) {}
+        for (var i = 0; i < frames.length; i++) {
+          var child = null;
+          try { child = frames[i].contentWindow; void child.document; } catch (e) { child = null; }
+          if (child) visit(child);
+        }
+      })(window);
+      return found;
+    }
+
+    var timer = 0;
+    var last = null;
+    function send() {
+      var text = best().text;
+      if (!text.trim() || text === last) return;      // a cleared selection keeps what was there
+      last = text;
+      try { chrome.runtime.sendMessage({ type: "cn-selection", text: text }); } catch (e) {}
+    }
+    function schedule() {
+      clearTimeout(timer);
+      timer = setTimeout(send, 120);
+    }
+    function bind(w) {
+      var d;
+      try { d = w.document; void d.documentElement; } catch (e) { return; }
+      if (w.__cnBound) return;
+      w.__cnBound = true;
+      d.addEventListener("selectionchange", schedule);
+      Array.prototype.forEach.call(d.querySelectorAll("iframe, frame"), function (frame) {
+        try { bind(frame.contentWindow); } catch (e) {}
+        if (!frame.__cnWatchedSel) {
+          frame.__cnWatchedSel = true;
+          frame.addEventListener("load", function () { try { bind(frame.contentWindow); } catch (e) {} });
+        }
+      });
+    }
+    bind(window);
+    window.__cnWatch = { resend: function () { last = null; send(); } };
+    return { reporting: true, already: false };
+  };
+
   // Lifts copy protection so the text can be selected with the mouse again, like the "Allow Copy"
   // extensions do. Runs in the page's own JavaScript world (chrome.scripting world "MAIN"), because
   // handlers the page assigned (document.oncopy = ...) are invisible to an isolated content script.
@@ -134,7 +210,7 @@
 
     if (window === window.top && !already) {
       var note = document.createElement("div");
-      note.textContent = "선택·복사 방지를 풀었어요. 가져올 글을 드래그해서 선택한 뒤, 체크리스트 노트 창에서 \"선택한 글 가져오기\"를 누르세요.";
+      note.textContent = "선택·복사 방지를 풀었어요. 글을 드래그해서 선택하면 체크리스트 노트 창에 바로 채워져요.";
       note.setAttribute("style", "all:initial;position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:2147483647;" +
         "max-width:min(560px,calc(100vw - 24px));box-sizing:border-box;padding:12px 18px;border-radius:12px;background:#23261f;" +
         "color:#ede9df;font:600 14px/1.5 sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.4);pointer-events:none");

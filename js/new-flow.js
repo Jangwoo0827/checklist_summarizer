@@ -7,7 +7,7 @@
   // The "새 체크리스트 만들기" screens, as cards:
   //   1. where the text comes from:  기본 (type it) / 페이지 (the web page being viewed, extension only)
   //   2. which template to use:      템플릿 없이 / each saved template
-  //   3. (page, nothing selected)    how to read the page: drag-select / click-to-pick / region OCR
+  //   (page) then goes straight to live mode (live.js); click-to-pick and region OCR are buttons there
   // When a template is chosen for imported text, a preview shows exactly what goes where before it is
   // applied. The same preview serves "템플릿에 합치기" in the editor.
   var doc = root.document;
@@ -99,12 +99,9 @@
     CN.pageImport.prepare().then(function (ctx) {
       if (ctx.needsAccess) { showAccess(source, tpl, goBack); return; }
       if (ctx.error) { dialog.close(); util.toast(ctx.error); return; }
-      if (ctx.selection) {
-        dialog.close();
-        deliver(CN.pageText.toList(ctx.selection, CN.settings.styleFor), tpl && tpl.id);
-        return;
-      }
-      showModes(ctx.tab, tpl, goBack);
+      // No second question: the page is unlocked for selecting and the editor follows the selection live.
+      dialog.close();
+      CN.live.start(ctx.tab, tpl, ctx.selection);
     });
   }
 
@@ -119,46 +116,6 @@
           else util.toast("허용하지 않으면 페이지에서 글을 가져올 수 없어요");
         });
       })], goBack);
-  }
-
-  function showModes(tab, tpl, goBack) {
-    screen("선택해 둔 글이 없어요. 어떻게 가져올까요?", "고르면 페이지에서 이어서 해요. 이 창은 그대로 열려 있어요.", [
-      card("드래그로 선택해서 가져오기",
-        "선택·복사 방지를 풀어 드려요. 페이지에서 글을 드래그로 고른 다음, 여기서 \"선택한 글 가져오기\"를 눌러요.",
-        function () { runMode(tab, tpl, goBack, "unlock"); }),
-      card("클릭해서 고르기", "글 덩어리를 클릭해서 골라요. 여러 곳도 고를 수 있어요.",
-        function () { runMode(tab, tpl, goBack, "pick"); }),
-      card("영역 드래그해서 글자 읽기", "글이 이미지로 되어 있을 때 써요. 화면의 영역을 사진처럼 읽어요.",
-        function () { runMode(tab, tpl, goBack, "region"); })
-    ], goBack);
-  }
-
-  function runMode(tab, tpl, goBack, mode) {
-    CN.pageImport.start(tab.id, mode, tpl && tpl.id).then(function (running) {
-      if (!running) return;
-      if (mode === "unlock") { showUnlocked(tab, tpl, goBack); return; }
-      // Click-to-pick and region hand their result over by themselves; the panel imports it when it arrives.
-      dialog.close();
-      util.toast(mode === "pick" ? "페이지에서 가져올 글을 클릭해서 고르세요" : "페이지에서 가져올 영역을 드래그하세요");
-    });
-  }
-
-  // The page is unlocked: the user selects text there, then tells us here.
-  function showUnlocked(tab, tpl, goBack) {
-    screen("글을 드래그해서 선택하세요",
-      "복사 방지를 풀었어요. 페이지에서 가져올 글을 드래그로 선택한 뒤, 아래 버튼을 눌러요. 이 창은 열어 둔 채로 페이지를 쓰면 돼요.",
-      [card("선택한 글 가져오기", "지금 페이지에서 선택된 글을 읽어요", function () {
-        CN.pageImport.prepare().then(function (ctx) {
-          if (ctx.needsAccess || ctx.error) { util.toast(ctx.error || "허용이 필요해요"); return; }
-          if (!ctx.selection) {
-            util.toast("선택한 글이 없어요. 페이지에서 글을 드래그로 선택해 주세요 (확인한 화면 " + (ctx.frames || 0) + "개)");
-            return;
-          }
-          dialog.close();
-          deliver(CN.pageText.toList(ctx.selection, CN.settings.styleFor), tpl && tpl.id);
-        });
-      })],
-      function () { showModes(tab, tpl, goBack); });
   }
 
   // ---------- delivering text into the editor ----------

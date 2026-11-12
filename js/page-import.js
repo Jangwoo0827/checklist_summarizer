@@ -25,7 +25,7 @@
 
   function available() {
     return doc.documentElement.classList.contains("is-popup") &&
-      !!(chromeApi && chromeApi.scripting && chromeApi.tabs && chromeApi.storage && chromeApi.permissions);
+      !!(chromeApi && chromeApi.scripting && chromeApi.tabs && chromeApi.storage && chromeApi.permissions && chromeApi.runtime);
   }
 
   // ---------- permission ----------
@@ -109,6 +109,20 @@
     region: function (tabId) { return inject(tabId, CN.pageRegion); }
   };
 
+  // Live mode: unlock selecting (every frame, in the page's own world) and report selection changes (every
+  // frame we can reach, in the content-script world). Resolves true when both are running.
+  function startLive(tabId, templateId) {
+    util.writeString(TEMPLATE_PREF_KEY, templateId || "");   // pick / region started from the live bar reuse it
+    return Promise.all([
+      MODES.unlock(tabId),
+      inject(tabId, CN.pageWatch, { allFrames: true }).catch(function () { return inject(tabId, CN.pageWatch); })
+    ]).then(function () { return true; }, function (err) {
+      console.error(err);
+      util.toast("이 페이지에서는 쓸 수 없어요 (" + (err && err.message ? err.message : "알 수 없는 오류") + ")");
+      return false;
+    });
+  }
+
   // Resolves true when the mode is running on the page.
   function start(tabId, mode, templateId) {
     util.writeString(TEMPLATE_PREF_KEY, templateId || "");
@@ -151,6 +165,10 @@
   function init() {
     if (!available()) return;
     importPending();
+    // The page reports its selection as it changes (see live.js).
+    chromeApi.runtime.onMessage.addListener(function (message) {
+      if (message && message.type === "cn-selection" && CN.live) CN.live.onSelection(message.text);
+    });
     // The panel stays open while the user picks on the page, so take the result the moment it is saved.
     chromeApi.storage.onChanged.addListener(function (changes, area) {
       if (area === "local" && changes[PENDING_KEY] && changes[PENDING_KEY].newValue) importPending();
@@ -159,6 +177,6 @@
 
   CN.pageImport = {
     available: available, hasAccess: hasAccess, requestAccess: requestAccess,
-    prepare: prepare, start: start, init: init
+    prepare: prepare, start: start, startLive: startLive, init: init
   };
 })(window);

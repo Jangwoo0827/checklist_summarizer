@@ -4,10 +4,20 @@
 
   // The one place the app version lives. manifest.json must carry the same number (a test checks it).
   // To release: bump VERSION here and in manifest.json, add an entry at the top of PATCH_NOTES.
-  var VERSION = "1.10.0";
+  var VERSION = "1.11.0";
 
   // Newest first. Shown in 설정 > 패치노트.
   var PATCH_NOTES = [
+    {
+      version: "1.11.0", date: "2026-11-13",
+      items: [
+        "카드에서 \"페이지\"를 고르면 방법을 따로 묻지 않고 바로 글 선택으로 넘어가요. 복사·선택 방지는 자동으로 풀어요.",
+        "페이지에서 글을 드래그하는 동안 패널의 체크리스트가 실시간으로 채워져요. 선택 범위를 넓히면 따라서 늘어나요.",
+        "템플릿을 골랐다면 템플릿이 채워지는 모습이 그대로 보이고, 몇 줄이 채워졌고 몇 줄이 비었는지 막대에 보여줘요.",
+        "직접 입력 칸에 글을 쓰기 시작하면 자동으로 채우는 걸 멈춰서, 고친 내용을 덮어쓰지 않아요.",
+        "클릭해서 고르기와 영역 글자 읽기는 실시간 막대의 버튼으로 남겨 뒀어요."
+      ]
+    },
     {
       version: "1.10.0", date: "2026-11-13",
       items: [
