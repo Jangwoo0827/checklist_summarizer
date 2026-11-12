@@ -51,6 +51,7 @@
   store.load();
   CN.theme.init();
   CN.settings.init();
+  CN.pageImport.init();
   CN.account.init();
   CN.sync.onRemoteChange(refresh);
   doc.getElementById("btn-new").addEventListener("click", CN.input.openNew);

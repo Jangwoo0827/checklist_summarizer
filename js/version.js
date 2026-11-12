@@ -4,10 +4,19 @@
 
   // The one place the app version lives. manifest.json must carry the same number (a test checks it).
   // To release: bump VERSION here and in manifest.json, add an entry at the top of PATCH_NOTES.
-  var VERSION = "1.5.1";
+  var VERSION = "1.6.0";
 
   // Newest first. Shown in 설정 > 패치노트.
   var PATCH_NOTES = [
+    {
+      version: "1.6.0", date: "2026-11-13",
+      items: [
+        "웹페이지에서 글 가져오기(확장 프로그램): 학원 게시판 같은 페이지에서 글을 드래그해 선택한 뒤 \"이 페이지에서 가져오기\"를 누르면 바로 체크리스트 입력 화면에 채워져요.",
+        "선택한 글이 없으면 페이지에서 직접 클릭해서 고르는 모드가 켜져요. 여러 곳을 고를 수 있고, ↑ 키로 범위를 넓힐 수 있어요.",
+        "가져온 글은 번호와 들여쓰기를 알아보고, 설정에서 고른 번호 모양으로 바뀌어요. 게시판 제목 끝의 댓글 수([0])는 지워요.",
+        "확장 프로그램이 현재 보고 있는 탭을 읽을 수 있도록 권한(activeTab, scripting, storage)을 추가했어요. 설치할 때 경고는 뜨지 않아요."
+      ]
+    },
     {
       version: "1.5.1", date: "2026-11-12",
       items: [

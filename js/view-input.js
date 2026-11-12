@@ -33,6 +33,14 @@
     elText.focus();
   }
 
+  // New list whose text comes from outside (e.g. picked on a web page), converted to the list format.
+  function openNewWith(raw) {
+    openNew();
+    elText.value = CN.pageText.toList(raw, CN.settings.styleFor);
+    elText.setSelectionRange(0, 0);
+    elText.scrollTop = 0;
+  }
+
   function openEdit(list) {
     setFillMode(false);
     editingListId = list.id;
@@ -215,5 +223,5 @@
   doc.getElementById("btn-cancel-new").addEventListener("click", cancel);
   elBuild.addEventListener("click", build);
 
-  CN.input = { openNew: openNew, openEdit: openEdit, useTemplate: useTemplate };
+  CN.input = { openNew: openNew, openEdit: openEdit, openNewWith: openNewWith, useTemplate: useTemplate };
 })(window);
