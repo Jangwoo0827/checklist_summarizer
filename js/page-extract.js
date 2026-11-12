@@ -5,13 +5,37 @@
   "use strict";
   var CN = root.CN = root.CN || {};
 
-  // The text the user has selected on the page ("" when nothing is selected).
+  // The text the user has selected on the page, wherever it is: this document or any frame of the same
+  // site inside it, however deeply nested (a selection made in a frame is invisible to the page around it).
+  // Several frames can hold a selection (a select-all in an outer frame, a drag in an inner one); the
+  // innermost wins, as that is where someone drags a selection on purpose, and the longest among equals.
+  // Returns { text, depth, frames } - frames is how many documents were looked at, for diagnosing.
   CN.pageSelection = function pageSelection() {
-    try {
-      return String(window.getSelection ? window.getSelection() : "");
-    } catch (e) {
-      return "";
+    function depthOf(w) {
+      var d = 0;
+      try { while (w !== w.parent) { w = w.parent; d++; } } catch (e) {}
+      return d;
     }
+    var best = { text: "", depth: -1, frames: 0 };
+    function visit(w) {
+      best.frames++;
+      var text = "";
+      try { text = String(w.getSelection ? w.getSelection() : ""); } catch (e) {}
+      var depth = depthOf(w);
+      if (text.trim() && (depth > best.depth || (depth === best.depth && text.length > best.text.length))) {
+        best.text = text;
+        best.depth = depth;
+      }
+      var frames = [];
+      try { frames = w.document.querySelectorAll("iframe, frame"); } catch (e) {}
+      for (var i = 0; i < frames.length; i++) {
+        var child = null;
+        try { child = frames[i].contentWindow; void child.document; } catch (e) { child = null; }   // another site: not readable
+        if (child) visit(child);
+      }
+    }
+    visit(window);
+    return best;
   };
 
   // Lifts copy protection so the text can be selected with the mouse again, like the "Allow Copy"
@@ -21,67 +45,103 @@
   //   * clears onselectstart / oncopy / oncontextmenu / ... handlers (properties and attributes),
   //   * stops copy / cut / selectstart / contextmenu / dragstart events before the page's own handlers see them,
   //   * switches off empty, transparent layers laid over the text (the page's "shield").
+  // It does all of that in this document and in every frame of the same site inside it (and again when
+  // such a frame loads a new page). The note is shown once, by the top page only.
   CN.pageUnlock = function pageUnlock() {
-    if (window.__cnUnlocked) return { already: true };
-    window.__cnUnlocked = true;
-
-    var style = document.createElement("style");
-    style.textContent = "*, *::before, *::after { -webkit-user-select: text !important; user-select: text !important; " +
-      "-webkit-touch-callout: default !important; }";
-    (document.head || document.documentElement).appendChild(style);
-
     var HANDLERS = ["onselectstart", "oncopy", "oncut", "onpaste", "oncontextmenu", "ondragstart", "onselect", "ondrag"];
-    function clear(target) {
-      HANDLERS.forEach(function (name) {
-        try { target[name] = null; } catch (e) {}
-        if (target.removeAttribute) target.removeAttribute(name);
-      });
-    }
-    [window, document, document.documentElement, document.body].forEach(function (t) { if (t) clear(t); });
-    Array.prototype.forEach.call(document.querySelectorAll("[" + HANDLERS.join("],[") + "]"), clear);
-
-    // Our listeners run first (capture phase on window) and keep the page's handlers from seeing these.
-    ["copy", "cut", "selectstart", "contextmenu", "dragstart", "select"].forEach(function (type) {
-      window.addEventListener(type, function (e) { e.stopImmediatePropagation(); }, true);
-    });
-
-    // Shields: elements with no text of their own that sit on top of text. Probe a grid of points.
-    function hasText(el) { return (el.innerText || el.textContent || "").trim().length > 0; }
+    var EVENTS = ["copy", "cut", "selectstart", "contextmenu", "dragstart", "select"];
     var shields = 0;
-    var COLS = 8, ROWS = 10;
-    for (var pass = 0; pass < 3; pass++) {            // a page can stack several layers
-      var found = false;
-      for (var r = 0; r < ROWS; r++) {
-        for (var c = 0; c < COLS; c++) {
-          var x = (c + 0.5) * window.innerWidth / COLS;
-          var y = (r + 0.5) * window.innerHeight / ROWS;
-          var stack = document.elementsFromPoint(x, y);
-          for (var i = 0; i < stack.length; i++) {
-            var el = stack[i];
-            if (el === document.documentElement || el === document.body) break;
-            if (hasText(el)) break;                    // reached real content: nothing above it to remove
-            if (el.tagName === "IMG" || el.tagName === "CANVAS" || el.tagName === "VIDEO" || el.tagName === "SVG" ||
-                el.tagName === "svg" || el.tagName === "IFRAME" || el.tagName === "INPUT" || el.tagName === "TEXTAREA") continue;
-            var below = stack.slice(i + 1).some(function (other) { return other !== document.documentElement && other !== document.body && hasText(other); });
-            if (!below) continue;                      // an empty box with no text under it is harmless
-            el.style.setProperty("pointer-events", "none", "important");
-            shields++;
-            found = true;
-            break;
+    var windows = 0;
+
+    // "Content" is what a shield must never be mistaken for: text, a frame, an image, a control, a link,
+    // or an element that has any of those inside it. A shield is empty all the way down.
+    var CONTENT_TAG = /^(IFRAME|FRAME|IMG|CANVAS|VIDEO|AUDIO|SVG|svg|INPUT|TEXTAREA|SELECT|BUTTON|OBJECT|EMBED)$/;
+    var CONTENT_INSIDE = "iframe, frame, img, canvas, video, audio, svg, input, textarea, select, button, object, embed, a";
+    function hasContent(el) {
+      if (CONTENT_TAG.test(el.tagName)) return true;
+      if ((el.innerText || el.textContent || "").trim().length > 0) return true;
+      return !!(el.querySelector && el.querySelector(CONTENT_INSIDE));
+    }
+
+    function unlockWindow(w) {
+      var d;
+      try { d = w.document; void d.documentElement; } catch (e) { return; }
+      if (!d || !d.documentElement) return;
+      if (w.__cnUnlocked) return;
+      w.__cnUnlocked = true;
+      windows++;
+
+      var style = d.createElement("style");
+      style.textContent = "*, *::before, *::after { -webkit-user-select: text !important; user-select: text !important; " +
+        "-webkit-touch-callout: default !important; }";
+      (d.head || d.documentElement).appendChild(style);
+
+      function clear(target) {
+        HANDLERS.forEach(function (name) {
+          try { target[name] = null; } catch (e) {}
+          if (target.removeAttribute) target.removeAttribute(name);
+        });
+      }
+      [w, d, d.documentElement, d.body].forEach(function (t) { if (t) clear(t); });
+      Array.prototype.forEach.call(d.querySelectorAll("[" + HANDLERS.join("],[") + "]"), clear);
+
+      // Our listeners run first (capture phase on the window) and keep the page's handlers from seeing these.
+      EVENTS.forEach(function (type) {
+        w.addEventListener(type, function (e) { e.stopImmediatePropagation(); }, true);
+      });
+
+      // Shields: elements with no text of their own that sit on top of text. Probe a grid of points.
+      var COLS = 8, ROWS = 10;
+      for (var pass = 0; pass < 3; pass++) {              // a page can stack several layers
+        var found = false;
+        for (var r = 0; r < ROWS; r++) {
+          for (var c = 0; c < COLS; c++) {
+            var x = (c + 0.5) * w.innerWidth / COLS;
+            var y = (r + 0.5) * w.innerHeight / ROWS;
+            var stack = d.elementsFromPoint ? d.elementsFromPoint(x, y) : [];
+            for (var i = 0; i < stack.length; i++) {
+              var el = stack[i];
+              if (el === d.documentElement || el === d.body) break;
+              if (hasContent(el)) break;                   // reached real content: nothing above it to remove
+              // `el` is empty all the way down and sits above this point. It is a shield only if there is
+              // content underneath it that it is covering.
+              var below = stack.slice(i + 1).some(function (other) {
+                return other !== d.documentElement && other !== d.body && hasContent(other);
+              });
+              if (!below) continue;
+              el.style.setProperty("pointer-events", "none", "important");
+              shields++;
+              found = true;
+              break;
+            }
           }
         }
+        if (!found) break;
       }
-      if (!found) break;
+
+      // Frames of the same site, now and whenever one loads a new page.
+      Array.prototype.forEach.call(d.querySelectorAll("iframe, frame"), function (frame) {
+        try { unlockWindow(frame.contentWindow); } catch (e) {}
+        if (!frame.__cnWatched) {
+          frame.__cnWatched = true;
+          frame.addEventListener("load", function () { try { unlockWindow(frame.contentWindow); } catch (e) {} });
+        }
+      });
     }
 
-    var note = document.createElement("div");
-    note.textContent = "선택·복사 방지를 풀었어요. 가져올 글을 드래그해서 선택한 뒤, 확장 프로그램 아이콘을 눌러 \"페이지\"를 고르세요.";
-    note.setAttribute("style", "all:initial;position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:2147483647;" +
-      "max-width:min(560px,calc(100vw - 24px));box-sizing:border-box;padding:12px 18px;border-radius:12px;background:#23261f;" +
-      "color:#ede9df;font:600 14px/1.5 sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.4);pointer-events:none");
-    document.documentElement.appendChild(note);
-    setTimeout(function () { if (note.parentNode) note.parentNode.removeChild(note); }, 7000);
-    return { already: false, shields: shields };
+    var already = !!window.__cnUnlocked;
+    unlockWindow(window);
+
+    if (window === window.top && !already) {
+      var note = document.createElement("div");
+      note.textContent = "선택·복사 방지를 풀었어요. 가져올 글을 드래그해서 선택한 뒤, 체크리스트 노트 창에서 \"선택한 글 가져오기\"를 누르세요.";
+      note.setAttribute("style", "all:initial;position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:2147483647;" +
+        "max-width:min(560px,calc(100vw - 24px));box-sizing:border-box;padding:12px 18px;border-radius:12px;background:#23261f;" +
+        "color:#ede9df;font:600 14px/1.5 sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.4);pointer-events:none");
+      document.documentElement.appendChild(note);
+      setTimeout(function () { if (note.parentNode) note.parentNode.removeChild(note); }, 7000);
+    }
+    return { already: already, windows: windows, shields: shields };
   };
 
   // Click-to-pick mode. The page gets a small bar on top; hovering outlines the block under the

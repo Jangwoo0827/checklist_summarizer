@@ -150,7 +150,10 @@
       [card("선택한 글 가져오기", "지금 페이지에서 선택된 글을 읽어요", function () {
         CN.pageImport.prepare().then(function (ctx) {
           if (ctx.needsAccess || ctx.error) { util.toast(ctx.error || "허용이 필요해요"); return; }
-          if (!ctx.selection) { util.toast("선택한 글이 없어요. 페이지에서 글을 드래그로 선택해 주세요"); return; }
+          if (!ctx.selection) {
+            util.toast("선택한 글이 없어요. 페이지에서 글을 드래그로 선택해 주세요 (확인한 화면 " + (ctx.frames || 0) + "개)");
+            return;
+          }
           dialog.close();
           deliver(CN.pageText.toList(ctx.selection, CN.settings.styleFor), tpl && tpl.id);
         });

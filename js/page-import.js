@@ -68,16 +68,19 @@
     return chromeApi.scripting.executeScript(details);
   }
 
-  // The selection may be inside a frame of the page, so look in all of them (a frame we can't reach is
-  // skipped; if that fails the whole call, fall back to the top frame).
+  // pageSelection walks the frames of the page itself, so one call on the top frame is enough; it is also
+  // run in every frame we can reach, in case a frame of another site holds the selection. The innermost
+  // selection wins. `frames` (how many documents were looked at) is only for the "nothing selected" hint.
   function readSelection(tabId) {
     return inject(tabId, CN.pageSelection, { allFrames: true }).catch(function () {
       return inject(tabId, CN.pageSelection);
     }).then(function (results) {
-      var found = (results || []).map(function (r) { return r && r.result; }).filter(function (t) { return t && t.trim(); });
-      // The frame with the most text wins when several have something selected.
-      found.sort(function (a, b) { return b.length - a.length; });
-      return found.length ? found[0] : "";
+      var answers = (results || []).map(function (r) { return r && r.result; }).filter(Boolean);
+      var chosen = answers.filter(function (a) { return a.text && a.text.trim(); }).sort(function (a, b) {
+        return b.depth - a.depth || b.text.length - a.text.length;
+      })[0];
+      var looked = answers.reduce(function (most, a) { return Math.max(most, a.frames || 0); }, 0);
+      return { text: chosen ? chosen.text : "", frames: looked };
     });
   }
 
@@ -89,8 +92,8 @@
         if (!tab || !/^https?:/.test(tab.url || "")) {
           return { error: "이 페이지에서는 쓸 수 없어요. 일반 웹페이지를 보고 있는 상태에서 눌러주세요" };
         }
-        return readSelection(tab.id).then(function (selection) {
-          return { tab: tab, selection: selection };
+        return readSelection(tab.id).then(function (found) {
+          return { tab: tab, selection: found.text, frames: found.frames };
         });
       });
     }).catch(function (err) {

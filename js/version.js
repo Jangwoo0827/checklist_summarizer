@@ -4,10 +4,18 @@
 
   // The one place the app version lives. manifest.json must carry the same number (a test checks it).
   // To release: bump VERSION here and in manifest.json, add an entry at the top of PATCH_NOTES.
-  var VERSION = "1.9.1";
+  var VERSION = "1.9.2";
 
   // Newest first. Shown in 설정 > 패치노트.
   var PATCH_NOTES = [
+    {
+      version: "1.9.2", date: "2026-11-13",
+      items: [
+        "이은재 학원 사이트처럼 글이 프레임 속에 있는 페이지에서 \"드래그로 선택해서 가져오기\"가 안 되던 문제를 고쳤어요. 선택·복사 방지를 풀 때 프레임을 감싼 요소를 투명한 막으로 잘못 보고 꺼 버려서, 글이 아니라 프레임 틀만 선택됐어요.",
+        "프레임 안의 글을 선택하면 가장 안쪽 프레임의 선택을 우선해서 읽어요. 선택한 글이 없을 때는 확인한 화면 수를 알려줘요.",
+        "선택·복사 방지를 풀었다는 안내가 프레임마다 겹쳐 뜨던 것을 한 번만 뜨게 했어요."
+      ]
+    },
     {
       version: "1.9.1", date: "2026-11-13",
       items: [
